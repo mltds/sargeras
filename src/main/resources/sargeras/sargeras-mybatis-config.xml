@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <settings>
+        <setting name="logImpl" value="SLF4J"/>
+    </settings>
+
+    <typeAliases>
+        <typeAlias alias="SagaContext" type="org.mltds.sargeras.repository.rdbms.mapper.ContextMapper"/>
+    </typeAliases>
+
+    <environments default="default">
+        <environment id="default">
+            <transactionManager type="JDBC"/>
+            <dataSource type="org.mltds.sargeras.repository.rdbms.MybatisDataSourceFactory">
+                <property name="url" value="" />
+                <property name="username" value="" />
+                <property name="password" value="" />
+            </dataSource>
+            
+        </environment>
+    </environments>
+
+    <mappers>
+        <mapper resource="sargeras/mapper/SagaContextMapper.xml"/>
+    </mappers>
+
+</configuration>
