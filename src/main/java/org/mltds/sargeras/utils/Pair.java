@@ -1,7 +1,7 @@
 package org.mltds.sargeras.utils;
 
 /**
- * @author sunyi 2019/2/15.
+ * @author sunyi
  */
 public class Pair<A, B> {
     private A a;

@@ -1,16 +1,20 @@
 <configuration>
 
+    <conversionRule conversionWord="fl"
+                    converterClass="org.mltds.sargeras.utils.FileLineConverter" />
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%-5level] %logger - %msg%n</pattern>
+            <pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] [%thread] - %msg %fl%n</pattern>
         </encoder>
     </appender>
 
-    <logger name="org.mltds.sargeras.repository.rdbms" level="debug" additivity="false">
+    <logger name="org.mltds.sargeras" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>
 
-    <root level="info">
+    <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
+
 </configuration>

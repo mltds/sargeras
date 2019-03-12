@@ -1,10 +1,11 @@
 package org.mltds.sargeras.serialize.json;
 
-import com.alibaba.fastjson.JSON;
 import org.mltds.sargeras.serialize.Serialize;
 
+import com.alibaba.fastjson.JSON;
+
 /**
- * @author sunyi 2019/2/20.
+ * @author sunyi
  */
 public class JsonSerialize implements Serialize {
     @Override

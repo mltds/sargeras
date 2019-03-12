@@ -8,23 +8,22 @@
     </settings>
 
     <typeAliases>
-        <typeAlias alias="SagaContext" type="org.mltds.sargeras.repository.rdbms.mapper.ContextMapper"/>
+        <typeAlias alias="Context" type="org.mltds.sargeras.repository.rdbms.model.ContextDO"/>
+        <typeAlias alias="ContextInfo" type="org.mltds.sargeras.repository.rdbms.model.ContextInfoDO"/>
+        <typeAlias alias="ContextLock" type="org.mltds.sargeras.repository.rdbms.model.ContextLockDO"/>
     </typeAliases>
 
     <environments default="default">
         <environment id="default">
             <transactionManager type="JDBC"/>
-            <dataSource type="org.mltds.sargeras.repository.rdbms.MybatisDataSourceFactory">
-                <property name="url" value="" />
-                <property name="username" value="" />
-                <property name="password" value="" />
-            </dataSource>
-            
+            <dataSource type="org.mltds.sargeras.repository.rdbms.MybatisDataSourceFactory"/>
         </environment>
     </environments>
 
     <mappers>
-        <mapper resource="sargeras/mapper/SagaContextMapper.xml"/>
+        <mapper resource="sargeras/mapper/ContextMapper.xml"/>
+        <mapper resource="sargeras/mapper/ContextInfoMapper.xml"/>
+        <mapper resource="sargeras/mapper/ContextLockMapper.xml"/>
     </mappers>
 
 </configuration>

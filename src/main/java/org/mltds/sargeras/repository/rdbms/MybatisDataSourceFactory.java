@@ -6,16 +6,20 @@ import java.util.Properties;
 import javax.sql.DataSource;
 
 import org.apache.ibatis.datasource.DataSourceFactory;
-import org.mltds.sargeras.component.SagaException;
+import org.mltds.sargeras.api.SagaConfig;
+import org.mltds.sargeras.exception.SagaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.pool.DruidDataSource;
 
 /**
- * @author sunyi 2019/2/21.
+ * @author sunyi
  */
 public class MybatisDataSourceFactory implements DataSourceFactory {
+
+    // CONFIG_PREFIX, 为了缩短代码所以缩写为P
+    private static final String P = "repository.rdbms.datasource.";
 
     private static final Logger logger = LoggerFactory.getLogger(MybatisDataSourceFactory.class);
 
@@ -35,31 +39,35 @@ public class MybatisDataSourceFactory implements DataSourceFactory {
             }
             try {
                 dataSource = new DruidDataSource();
-                dataSource.setUrl(props.getProperty("url", "${jdbc_url}"));
-                dataSource.setUsername(props.getProperty("username", "${jdbc_user}"));
-                dataSource.setPassword(props.getProperty("password", "${jdbc_password}"));
-                dataSource.setFilters(props.getProperty("filters", "stat"));
-                dataSource.setMaxActive(Integer.valueOf(props.getProperty("maxActive", "20")));
-                dataSource.setInitialSize(Integer.valueOf(props.getProperty("initialSize", "1")));
-                dataSource.setMaxWait(Long.valueOf(props.getProperty("maxWait", "60000")));
-                dataSource.setMinIdle(Integer.valueOf(props.getProperty("minIdle", "1")));
-                dataSource.setTimeBetweenEvictionRunsMillis(Long.valueOf(props.getProperty("timeBetweenEvictionRunsMillis", "60000")));
-                dataSource.setMinEvictableIdleTimeMillis(Long.valueOf(props.getProperty("minEvictableIdleTimeMillis", "300000")));
-                dataSource.setTestWhileIdle(Boolean.valueOf(props.getProperty("testWhileIdle", "true")));
-                dataSource.setTestOnBorrow(Boolean.valueOf(props.getProperty("testOnBorrow", "false")));
-                dataSource.setTestOnReturn(Boolean.valueOf(props.getProperty("testOnReturn", "false")));
-                dataSource.setPoolPreparedStatements(Boolean.valueOf(props.getProperty("poolPreparedStatements", "true")));
-                dataSource.setMaxOpenPreparedStatements(Integer.valueOf(props.getProperty("maxOpenPreparedStatements", "20")));
-                dataSource.setAsyncInit(Boolean.valueOf(props.getProperty("asyncInit", "true")));
+
+                props.putAll(SagaConfig.getAllProperties());
+
+                dataSource.setUrl(props.getProperty(P + "url"));
+                dataSource.setUsername(props.getProperty(P + "username"));
+                dataSource.setPassword(props.getProperty(P + "password"));
+                dataSource.setFilters(props.getProperty(P + "filters", ""));
+                dataSource.setMaxActive(Integer.valueOf(props.getProperty(P + "maxActive", "20")));
+                dataSource.setInitialSize(Integer.valueOf(props.getProperty(P + "initialSize", "1")));
+                dataSource.setMaxWait(Long.valueOf(props.getProperty(P + "maxWait", "60000")));
+                dataSource.setMinIdle(Integer.valueOf(props.getProperty(P + "minIdle", "1")));
+                dataSource.setTimeBetweenEvictionRunsMillis(Long.valueOf(props.getProperty(P + "timeBetweenEvictionRunsMillis", "60000")));
+                dataSource.setMinEvictableIdleTimeMillis(Long.valueOf(props.getProperty(P + "minEvictableIdleTimeMillis", "300000")));
+                dataSource.setTestWhileIdle(Boolean.valueOf(props.getProperty(P + "testWhileIdle", "true")));
+                dataSource.setTestOnBorrow(Boolean.valueOf(props.getProperty(P + "testOnBorrow", "false")));
+                dataSource.setTestOnReturn(Boolean.valueOf(props.getProperty(P + "testOnReturn", "false")));
+                dataSource.setPoolPreparedStatements(Boolean.valueOf(props.getProperty(P + "poolPreparedStatements", "true")));
+                dataSource.setMaxOpenPreparedStatements(Integer.valueOf(props.getProperty(P + "maxOpenPreparedStatements", "20")));
+                dataSource.setAsyncInit(Boolean.valueOf(props.getProperty(P + "asyncInit", "true")));
 
                 dataSource.init();
 
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> dataSource.close()));
 
             } catch (SQLException e) {
                 throw new SagaException("Saga RdbmsRepository 初始化数据源失败", e);
             }
 
-            logger.info("Saga RdbmsRepository 初始化数据源成功");
+            logger.debug("Saga RdbmsRepository 初始化数据源成功");
 
         }
     }
@@ -67,7 +75,6 @@ public class MybatisDataSourceFactory implements DataSourceFactory {
     @Override
     public DataSource getDataSource() {
         return dataSource;
-
     }
 
 }

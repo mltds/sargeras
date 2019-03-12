@@ -1,20 +1,39 @@
 package org.mltds.sargeras.repository;
 
-import org.mltds.sargeras.SagaContext;
+import org.mltds.sargeras.api.SagaBean;
+import org.mltds.sargeras.api.SagaContext;
+import org.mltds.sargeras.api.SagaStatus;
+import org.mltds.sargeras.api.SagaTx;
 
 /**
- * @author sunyi 2019/2/20.
+ * @author sunyi
  */
-public interface Repository {
+public interface Repository extends SagaBean {
 
-    SagaContext saveContext(SagaContext context);
+    /**
+     * 如果 ID 在存储中存在则更新，否则作为一条新记录去创建。
+     */
+    Long saveContext(SagaContext context);
 
-    SagaContext findContext(Long id);
+    void saveContextStatus(Long contextId, SagaStatus status);
 
-    void updateContextById(SagaContext context);
+    void saveCurrentTx(Long contextId, Class<? extends SagaTx> cls);
 
-    boolean lock(Long id);
+    void savePreExecutedTx(Long contextId, Class<? extends SagaTx> cls);
 
-    boolean unlock(Long id);
+    void savePreCompensatedTx(Long contextId, Class<? extends SagaTx> cls);
+
+    /**
+     * 根据ID从存储的信息中，重新构建出一个 {@link SagaContext}
+     */
+    SagaContext loadContext(Long id);
+
+    void saveContextInfo(Long contextId, String key, Object info);
+
+    <T> T loadContextInfo(Long contextId, String key, Class<T> cls);
+
+    boolean lock(Long id, String reqId, int timeoutSec);
+
+    boolean unlock(Long id, String reqId);
 
 }

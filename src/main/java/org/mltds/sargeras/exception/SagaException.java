@@ -1,7 +1,9 @@
-package org.mltds.sargeras.component;
+package org.mltds.sargeras.exception;
 
 /**
- * @author sunyi 2019/2/22.
+ * Saga Exception， 为了方便识别是不是Saga发生的异常
+ * 
+ * @author sunyi
  */
 public class SagaException extends RuntimeException {
 

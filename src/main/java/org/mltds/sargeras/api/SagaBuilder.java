@@ -1,9 +1,9 @@
-package org.mltds.sargeras;
+package org.mltds.sargeras.api;
 
 /**
  * 用于构建一个 Saga
  * 
- * @author sunyi 2019/2/15.
+ * @author sunyi
  */
 public class SagaBuilder {
 
@@ -29,7 +29,7 @@ public class SagaBuilder {
     }
 
     public Saga build() {
-        //TODO store saga to memory
+        SagaApplication.addSaga(saga);// cache saga
         return saga;
     }
 

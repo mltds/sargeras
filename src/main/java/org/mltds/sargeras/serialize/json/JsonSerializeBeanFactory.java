@@ -1,19 +1,19 @@
 package org.mltds.sargeras.serialize.json;
 
 import org.mltds.sargeras.serialize.Serialize;
-import org.mltds.sargeras.serialize.SerializeFactory;
+import org.mltds.sargeras.serialize.SerializeBeanFactory;
 
 /**
- * @author sunyi 2019/2/20.
+ * @author sunyi
  */
-public class JsonSerializeFactory implements SerializeFactory {
+public class JsonSerializeBeanFactory implements SerializeBeanFactory {
 
     private JsonSerialize jsonSerialize;
 
     @Override
     public Serialize getObject() {
         if (jsonSerialize == null) {
-            synchronized (JsonSerializeFactory.class) {
+            synchronized (JsonSerializeBeanFactory.class) {
                 if (jsonSerialize == null) {
                     this.jsonSerialize = new JsonSerialize();
                 }
