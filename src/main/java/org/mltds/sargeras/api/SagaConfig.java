@@ -16,6 +16,13 @@ public class SagaConfig {
 
     public static final String CONFIG_FILE = "/sargeras.properties";
     public static final String CONFIG_FILE_DEFAULT = "/sargeras/sargeras.default.properties";
+
+
+    public static final String R_R_DATASOURCE = "repository.rdbms.datasource.";
+    public static final String LISTENER_LOGGER_NAME = "listener.logger.name";
+
+
+
     private static final Logger logger = LoggerFactory.getLogger(SagaConfig.class);
     private static Properties prop = new Properties();
 

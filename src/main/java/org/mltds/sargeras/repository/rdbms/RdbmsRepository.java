@@ -13,11 +13,15 @@ import org.mltds.sargeras.repository.rdbms.model.ContextDO;
 import org.mltds.sargeras.repository.rdbms.model.ContextInfoDO;
 import org.mltds.sargeras.repository.rdbms.model.ContextLockDO;
 import org.mltds.sargeras.serialize.Serialize;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author sunyi
  */
 public class RdbmsRepository implements Repository {
+
+    private static final Logger logger = LoggerFactory.getLogger(RdbmsRepository.class);
 
     private ContextMapper contextMapper;
     private ContextInfoMapper contextInfoMapper;
@@ -132,30 +136,32 @@ public class RdbmsRepository implements Repository {
     @Override
     public boolean lock(Long id, String reqId, int timeoutSec) {
 
-        ContextLockDO contextLockDO = contextLockMapper.select(id);
-        if (contextLockDO == null) {
-
-            contextLockDO = newLock(id, reqId, timeoutSec);
-            contextLockMapper.insert(contextLockDO);
-
-            return true;
-        } else {
-            Calendar c = Calendar.getInstance();
-            boolean after = c.getTime().after(contextLockDO.getExpireTime());
-            if (after) {
-                int delete = contextLockMapper.delete(id, reqId);
-                if (delete <= 0) {
-                    return false;
-                } else {
-                    contextLockDO = newLock(id, reqId, timeoutSec);
-                    contextLockMapper.insert(contextLockDO);
-                }
+        try {
+            ContextLockDO contextLockDO = contextLockMapper.select(id);
+            if (contextLockDO == null) {
+                contextLockDO = newLock(id, reqId, timeoutSec);
+                contextLockMapper.insert(contextLockDO);
+                return true;
             } else {
-                return false;
+                Calendar c = Calendar.getInstance();
+                boolean after = c.getTime().after(contextLockDO.getExpireTime());
+                if (after) {
+                    int delete = contextLockMapper.delete(id, reqId);
+                    if (delete <= 0) {
+                        return false;
+                    } else {
+                        contextLockDO = newLock(id, reqId, timeoutSec);
+                        contextLockMapper.insert(contextLockDO);
+                    }
+                } else {
+                    return false;
+                }
             }
+            return false;
+        } catch (Exception e) {
+            logger.warn("操作数据库获取锁失败ContextId:{},ReqId:{}", new Object[] { id, reqId }, e);
+            return false;
         }
-
-        return false;
     }
 
     private ContextLockDO newLock(Long id, String reqId, int timeoutSec) {
@@ -175,17 +181,21 @@ public class RdbmsRepository implements Repository {
     @Override
     public boolean unlock(Long id, String reqId) {
 
-        ContextLockDO contextLockDO = contextLockMapper.select(id);
-        if (contextLockDO == null) {
-            return false;
-        } else {
-            if (contextLockDO.getReqId().equals(reqId)) {
-                int delete = contextLockMapper.delete(id, reqId);
-                return delete > 0;
-            } else {
+        try {
+            ContextLockDO contextLockDO = contextLockMapper.select(id);
+            if (contextLockDO == null) {
                 return false;
+            } else {
+                if (contextLockDO.getReqId().equals(reqId)) {
+                    int delete = contextLockMapper.delete(id, reqId);
+                    return delete > 0;
+                } else {
+                    return false;
+                }
             }
-
+        } catch (Exception e) {
+            logger.warn("操作数据库释放锁失败ContextId:{},ReqId:{}", new Object[] { id, reqId }, e);
+            return false;
         }
     }
 

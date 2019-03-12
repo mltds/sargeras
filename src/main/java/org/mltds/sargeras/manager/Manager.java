@@ -125,7 +125,7 @@ public class Manager implements SagaBean {
         }
 
         // Return Result
-        Object bizResult = context.getBizResult();
+        Object bizResult = context.getBizResult(Object.class);
         Pair<SagaStatus, Object> result = new Pair<>(status, bizResult);
         return result;
     }

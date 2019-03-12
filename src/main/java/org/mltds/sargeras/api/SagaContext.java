@@ -85,29 +85,28 @@ public class SagaContext {
         this.bizId = bizId;
     }
 
-    public Object getBizParam() {
+    public <T> T getBizParam(Class<T> t) {
         if (bizParam != null) {
-            return bizParam;
+            return (T) bizParam;
         }
-        return getPersistentInfo(BIZ_PARAM_KEY, Object.class);
+        return getPersistentInfo(BIZ_PARAM_KEY, t);
     }
 
     public void setBizParam(Object bizParam) {
         this.bizParam = bizParam;
-        putPersistentInfo(BIZ_PARAM_KEY, bizParam);
+        savePersistentInfo(BIZ_PARAM_KEY, bizParam);
     }
 
-    public Object getBizResult() {
+    public <T> T getBizResult(Class<T> t) {
         if (bizResult != null) {
-            return bizResult;
+            return (T) bizResult;
         }
-        return getPersistentInfo(BIZ_RESULT_KEY, Object.class);
-
+        return getPersistentInfo(BIZ_RESULT_KEY, t);
     }
 
     public void setBizResult(Object bizResult) {
         this.bizResult = bizResult;
-        putPersistentInfo(BIZ_RESULT_KEY, bizResult);
+        savePersistentInfo(BIZ_RESULT_KEY, bizResult);
     }
 
     public Object putTransientInfo(String key, Object value) {
@@ -119,7 +118,7 @@ public class SagaContext {
         return (T) transientInfo.get(key);
     }
 
-    public void putPersistentInfo(String key, Object value) {
+    public void savePersistentInfo(String key, Object value) {
         Repository repository = SagaApplication.getRepository();
         repository.saveContextInfo(id, key, value);
     }

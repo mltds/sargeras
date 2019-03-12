@@ -9,7 +9,11 @@
         </encoder>
     </appender>
 
-    <logger name="org.mltds.sargeras" level="DEBUG" additivity="false">
+    <!--<logger name="org.mltds.sargeras" level="DEBUG" additivity="false">-->
+        <!--<appender-ref ref="STDOUT"/>-->
+    <!--</logger>-->
+
+    <logger name="saga-listener-logger" level="INFO" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>
 
