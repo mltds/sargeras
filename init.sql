@@ -6,7 +6,7 @@ CREATE TABLE `saga_context` (
   `status` varchar(10) NOT NULL DEFAULT '' COMMENT 'Saga 状态',
   `current_tx` varchar(200) DEFAULT '' COMMENT '当前正在执行的TX类',
   `pre_executed_tx` varchar(200) DEFAULT '' COMMENT '上一个执行的TX类',
-  `pre_compensated_tx` varchar(20) DEFAULT '' COMMENT '上一个补偿的TX类',
+  `pre_compensated_tx` varchar(200) DEFAULT '' COMMENT '上一个补偿的TX类',
   `create_time` datetime NOT NULL COMMENT '创建时间',
   `modify_time` datetime NOT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`),

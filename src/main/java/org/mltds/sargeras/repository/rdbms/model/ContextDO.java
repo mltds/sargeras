@@ -18,11 +18,8 @@ public class ContextDO {
     private String preExecutedTx;
     private String preCompensatedTx;
     private Date createTime;
+    private Date expireTime;
     private Date modifyTime;
-
-    public ContextDO() {
-
-    }
 
     public Long getId() {
         return id;
@@ -94,6 +91,14 @@ public class ContextDO {
 
     public void setCreateTime(Date createTime) {
         this.createTime = createTime;
+    }
+
+    public Date getExpireTime() {
+        return expireTime;
+    }
+
+    public void setExpireTime(Date expireTime) {
+        this.expireTime = expireTime;
     }
 
     public Date getModifyTime() {

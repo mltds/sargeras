@@ -6,7 +6,6 @@ import org.mltds.sargeras.api.*;
 import org.mltds.sargeras.exception.LockFailException;
 import org.mltds.sargeras.exception.SagaException;
 import org.mltds.sargeras.repository.Repository;
-import org.mltds.sargeras.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,7 @@ public class Manager implements SagaBean {
      * @param bizParam 业务参数
      * @return Saga的状态和执行结果
      */
-    public Pair<SagaStatus, Object> start(Saga saga, String bizId, Object bizParam) {
+    public SagaResult start(Saga saga, String bizId, Object bizParam) {
         // Build Saga Context
         SagaContext context = new SagaContext(saga);
         context.setBizId(bizId);
@@ -39,19 +38,19 @@ public class Manager implements SagaBean {
         context.setBizParam(bizParam);// 需要现有ContextId
 
         // Run
-        Pair<SagaStatus, Object> result = run(context);
+        SagaResult result = run(context);
 
         return result;
 
     }
 
-    public Pair<SagaStatus, Object> restart(Saga saga, String bizId) {
+    public SagaResult restart(Saga saga, String bizId) {
 
         // TODO load context
         SagaContext context = null;
 
         // Run
-        Pair<SagaStatus, Object> result = run(context);
+        SagaResult result = run(context);
 
         return result;
     }
@@ -65,7 +64,7 @@ public class Manager implements SagaBean {
      * 假如 TX2.compensate 返回 COMP_FAIL_TO_FINAL，那么整个流程中止，需要人工介入。
      *
      */
-    private Pair<SagaStatus, Object> run(SagaContext context) {
+    private SagaResult run(SagaContext context) {
         List<SagaTx> txList = context.getSaga().getTxList();
         List<SagaListener> listenerList = context.getSaga().getListenerList();
 
@@ -101,7 +100,7 @@ public class Manager implements SagaBean {
                 } else if (SagaTxStatus.EXE_FAIL_TO_COMP.equals(txStatus)) {
                     status = SagaStatus.COMPENSATING;
                     context.saveStatus(status);
-                    listenerChain.onToComp(context);
+                    listenerChain.onExeFailToComp(context);
                 }
             }
 
@@ -117,7 +116,7 @@ public class Manager implements SagaBean {
                 } else if (SagaTxStatus.COMP_FAIL_TO_FINAL.equals(txStatus)) {
                     status = SagaStatus.COMPENSATE_FAIL;
                     context.saveStatus(status);
-                    listenerChain.onToFinal(context);
+                    listenerChain.onComFailToFinal(context);
                 }
             }
         } finally {
@@ -125,8 +124,12 @@ public class Manager implements SagaBean {
         }
 
         // Return Result
-        Object bizResult = context.getBizResult(Object.class);
-        Pair<SagaStatus, Object> result = new Pair<>(status, bizResult);
+
+        SagaResult result = new SagaResult();
+        result.setSaga(context.getSaga());
+        result.setContext(context);
+        result.setStatus(status);
+
         return result;
     }
 
@@ -225,12 +228,14 @@ public class Manager implements SagaBean {
 
                 context.saveCurrentTx(txCls);
 
+                listenerChain.beforeCompensate(context, tx);
                 try {
-                    txStatus = tx.execute(context);
+                    txStatus = tx.compensate(context);
                 } catch (Exception e) {
                     txStatus = SagaTxStatus.PROCESSING; // 执行过程中发生异常，因异常不能视为业务结果，故认为状态为处理中
                     listenerChain.onException(context, e);
                 }
+                listenerChain.afterCompensate(context, tx, txStatus);
 
                 if (SagaTxStatus.SUCCESS.equals(txStatus)) {
                     context.savePreCompensatedTx(txCls);
@@ -281,10 +286,10 @@ public class Manager implements SagaBean {
         }
 
         @Override
-        public void onToComp(SagaContext context) {
+        public void onExeFailToComp(SagaContext context) {
             for (SagaListener l : listenerList) {
                 try {
-                    l.onToComp(context);
+                    l.onExeFailToComp(context);
                 } catch (Exception e) {
                     this.onException(context, e);
                 }
@@ -292,10 +297,10 @@ public class Manager implements SagaBean {
         }
 
         @Override
-        public void onToFinal(SagaContext context) {
+        public void onComFailToFinal(SagaContext context) {
             for (SagaListener l : listenerList) {
                 try {
-                    l.onToFinal(context);
+                    l.onComFailToFinal(context);
                 } catch (Exception e) {
                     this.onException(context, e);
                 }
@@ -340,6 +345,17 @@ public class Manager implements SagaBean {
             for (SagaListener l : listenerList) {
                 try {
                     l.afterCompensate(context, tx, status);
+                } catch (Exception e) {
+                    this.onException(context, e);
+                }
+            }
+        }
+
+        @Override
+        public void onOvertime(SagaContext context) {
+            for (SagaListener l : listenerList) {
+                try {
+                    l.onOvertime(context);
                 } catch (Exception e) {
                     this.onException(context, e);
                 }

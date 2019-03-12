@@ -14,22 +14,45 @@ public interface SagaListener {
 
     /**
      * 当再次启动并轮训重试时，触发的事件。<br/>
-     * PS：某个TX返回状态为WAIT，那么过一段时间会再次轮训重试这个TX，重试前会触发这个事件
+     * PS：某个 {@link SagaTx} 返回状态为 {@link SagaTxStatus#PROCESSING}，那么过一段时间会再次轮训重试这个TX，重试前会触发这个事件
      *
      */
     void onRestart(SagaContext context);
 
-    void onToComp(SagaContext context);
+    /**
+     * 当执行失败，进行补偿时
+     */
+    void onExeFailToComp(SagaContext context);
 
-    void onToFinal(SagaContext context);
+    /**
+     * 当补偿失败，流程终止时
+     */
+    void onComFailToFinal(SagaContext context);
 
+    /**
+     *  执行前
+     */
     void beforeExecute(SagaContext context, SagaTx tx);
 
+    /**
+     * 执行后
+     */
     void afterExecute(SagaContext context, SagaTx tx, SagaTxStatus status);
 
+    /**
+     * 补偿前
+     */
     void beforeCompensate(SagaContext context, SagaTx tx);
 
+    /**
+     * 补偿后
+     */
     void afterCompensate(SagaContext context, SagaTx tx, SagaTxStatus status);
+
+    /**
+     * 当超时后，不再跟踪。
+     */
+    void onOvertime(SagaContext context);
 
     /**
      * 当发生异常时

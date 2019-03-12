@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.mltds.sargeras.manager.Manager;
-import org.mltds.sargeras.utils.Pair;
 
 /**
  * Saga 代表着一个长事务（LLT,long live transaction），由多个小事务（Tx）有序组成。<br/>
@@ -88,11 +87,9 @@ public class Saga {
     /**
      * 执行一个长事务
      */
-    public Pair<SagaStatus, Object> start(String bizId, Object bizParam) {
+    public SagaResult start(String bizId, Object bizParam) {
         Manager manager = SagaApplication.getManager();
-        Pair<SagaStatus, Object> result = manager.start(this, bizId, bizParam);
-        return result;
-
+        return manager.start(this, bizId, bizParam);
     }
 
 }

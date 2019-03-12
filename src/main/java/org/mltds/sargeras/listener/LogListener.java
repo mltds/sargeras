@@ -14,7 +14,7 @@ public class LogListener implements SagaListener {
 
     @Override
     public void onStart(SagaContext context) {
-        logger.info("Saga 启动执行. KeyName:{}, ContextId:{},BizId:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId());
+        logger.info("Saga 开始执行. KeyName:{}, ContextId:{},BizId:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId());
     }
 
     @Override
@@ -23,44 +23,49 @@ public class LogListener implements SagaListener {
     }
 
     @Override
-    public void onToComp(SagaContext context) {
-        logger.info("Saga 开始补偿. KeyName:{}, ContextId:{},BizId:{},PreExecutedTx:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
+    public void onExeFailToComp(SagaContext context) {
+        logger.warn("Saga 执行失败，开始补偿. KeyName:{}, ContextId:{},BizId:{},PreExecutedTx:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
                 context.getPreExecutedTx().getSimpleName());
     }
 
     @Override
-    public void onToFinal(SagaContext context) {
-        logger.info("Saga 失败终止. KeyName:{}, ContextId:{},BizId:{},PreCompensatedTx:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
-                context.getPreCompensatedTx().getSimpleName());
+    public void onComFailToFinal(SagaContext context) {
+        logger.warn("Saga 补偿失败，流程终止. KeyName:{}, ContextId:{},BizId:{},PreCompensatedTx:{}", context.getSaga().getKeyName(), context.getId(),
+                context.getBizId(), context.getPreCompensatedTx().getSimpleName());
     }
 
     @Override
     public void beforeExecute(SagaContext context, SagaTx tx) {
-        logger.info("SagaTx执行前. KeyName:{}, ContextId:{},BizId:{},TX:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
+        logger.debug("SagaTx 执行前. KeyName:{}, ContextId:{},BizId:{},TX:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
                 tx.getClass().getSimpleName());
     }
 
     @Override
     public void afterExecute(SagaContext context, SagaTx tx, SagaTxStatus status) {
-        logger.info("SagaTx执行后. KeyName:{}, ContextId:{},BizId:{},Tx:{}，TxStatus:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
+        logger.debug("SagaTx 执行后. KeyName:{}, ContextId:{},BizId:{},Tx:{}，TxStatus:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
                 tx.getClass().getSimpleName(), status);
     }
 
     @Override
     public void beforeCompensate(SagaContext context, SagaTx tx) {
-        logger.info("SagaTx补偿前. KeyName:{}, ContextId:{},BizId:{},Tx:{}，TxStatus:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
+        logger.debug("SagaTx 补偿前. KeyName:{}, ContextId:{},BizId:{},Tx:{}，TxStatus:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
                 tx.getClass().getSimpleName());
     }
 
     @Override
     public void afterCompensate(SagaContext context, SagaTx tx, SagaTxStatus status) {
-        logger.info("SagaTx补偿后. KeyName:{}, ContextId:{},BizId:{},Tx:{}，TxStatus:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
+        logger.debug("SagaTx 补偿后. KeyName:{}, ContextId:{},BizId:{},Tx:{}，TxStatus:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
                 tx.getClass().getSimpleName(), status);
     }
 
     @Override
+    public void onOvertime(SagaContext context) {
+        logger.warn("Saga 业务超时，不再跟踪. KeyName:{}, ContextId:{},BizId:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId());
+    }
+
+    @Override
     public void onException(SagaContext context, Throwable t) {
-        logger.warn("Saga执行过程中发生异常. KeyName:{}, ContextId:{},BizId:{}", new Object[] { context.getSaga().getKeyName(), context.getId(), context.getBizId() },
+        logger.warn("Saga 执行过程中发生异常. KeyName:{}, ContextId:{},BizId:{}", new Object[] { context.getSaga().getKeyName(), context.getId(), context.getBizId() },
                 t);
     }
 }
