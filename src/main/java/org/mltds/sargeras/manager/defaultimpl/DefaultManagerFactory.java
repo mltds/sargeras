@@ -15,16 +15,12 @@ public class DefaultManagerFactory implements ManagerFactory {
         if (manager != null) {
             return manager;
         }
-
         synchronized (DefaultManagerFactory.class) {
             if (manager != null) {
                 return manager;
             }
-
-            manager = new Manager();
-
+            manager = new DefaultManager();
         }
-
         return manager;
     }
 

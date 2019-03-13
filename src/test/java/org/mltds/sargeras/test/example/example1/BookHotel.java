@@ -1,4 +1,4 @@
-package org.mltds.sargeras.test.example;
+package org.mltds.sargeras.test.example.example1;
 
 import org.mltds.sargeras.api.SagaContext;
 import org.mltds.sargeras.api.SagaTx;
@@ -20,13 +20,16 @@ public class BookHotel implements SagaTx {
     @Override
     public SagaTxStatus execute(SagaContext context) {
 
+        // 获取家人信息，用于预定酒店
+        FamilyMember member = context.getBizParam(FamilyMember.class);
+
         if (bookSucc) {
             // 预约酒店成功，对方返回一个酒店预约单号
             String bookHotelOrderNo = "hotel456";
             context.savePersistentInfo(HOTEL_ORDER_NO, bookHotelOrderNo);
             return SagaTxStatus.SUCCESS;
         } else {
-            context.setBizResult("预定酒店失败，别去了~~~");
+            context.saveBizResult("预定酒店失败，别去了~~~");
             return SagaTxStatus.EXE_FAIL_TO_COMP;
         }
 

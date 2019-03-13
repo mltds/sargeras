@@ -10,6 +10,11 @@ public class Utils {
      */
     public static Class loadClass(String className) {
         try {
+
+            if (className == null || className.length() <= 0) {
+                return null;
+            }
+
             ClassLoader ccl = Thread.currentThread().getContextClassLoader();
             Class<?> cls = Class.forName(className, false, ccl);
             return cls;

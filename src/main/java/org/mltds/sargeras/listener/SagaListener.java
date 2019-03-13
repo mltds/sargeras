@@ -1,4 +1,8 @@
-package org.mltds.sargeras.api;
+package org.mltds.sargeras.listener;
+
+import org.mltds.sargeras.api.SagaContext;
+import org.mltds.sargeras.api.SagaTx;
+import org.mltds.sargeras.api.SagaTxStatus;
 
 /**
  * Listener 用于监听各个事件或动作。发生的异常都会被
@@ -20,6 +24,16 @@ public interface SagaListener {
     void onRestart(SagaContext context);
 
     /**
+     * 当超时后，不再跟踪。
+     */
+    void onOvertime(SagaContext context);
+
+    /**
+     * 当发生异常时
+     */
+    void onException(SagaContext context, Throwable t);
+
+    /**
      * 当执行失败，进行补偿时
      */
     void onExeFailToComp(SagaContext context);
@@ -30,7 +44,7 @@ public interface SagaListener {
     void onComFailToFinal(SagaContext context);
 
     /**
-     *  执行前
+     * 执行前
      */
     void beforeExecute(SagaContext context, SagaTx tx);
 
@@ -48,15 +62,5 @@ public interface SagaListener {
      * 补偿后
      */
     void afterCompensate(SagaContext context, SagaTx tx, SagaTxStatus status);
-
-    /**
-     * 当超时后，不再跟踪。
-     */
-    void onOvertime(SagaContext context);
-
-    /**
-     * 当发生异常时
-     */
-    void onException(SagaContext context, Throwable t);
 
 }

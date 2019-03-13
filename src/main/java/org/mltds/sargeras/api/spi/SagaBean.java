@@ -1,4 +1,4 @@
-package org.mltds.sargeras.api;
+package org.mltds.sargeras.api.spi;
 
 /**
  * @author sunyi

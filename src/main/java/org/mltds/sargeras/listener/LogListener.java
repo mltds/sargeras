@@ -1,11 +1,15 @@
 package org.mltds.sargeras.listener;
 
-import org.mltds.sargeras.api.*;
+import org.mltds.sargeras.api.SagaConfig;
+import org.mltds.sargeras.api.SagaContext;
+import org.mltds.sargeras.api.SagaTx;
+import org.mltds.sargeras.api.SagaTxStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * 提供一个只记 log 的Listener，简单实用。
+ * 
  * @author sunyi.
  */
 public class LogListener implements SagaListener {
@@ -65,7 +69,7 @@ public class LogListener implements SagaListener {
 
     @Override
     public void onException(SagaContext context, Throwable t) {
-        logger.warn("Saga 执行过程中发生异常. KeyName:{}, ContextId:{},BizId:{}", new Object[] { context.getSaga().getKeyName(), context.getId(), context.getBizId() },
+        logger.error("Saga 执行过程中发生异常. KeyName:{" + context.getSaga().getKeyName() + "}, ContextId:{" + context.getId() + "},BizId:{" + context.getBizId() + "}",
                 t);
     }
 }

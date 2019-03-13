@@ -3,6 +3,8 @@ package org.mltds.sargeras.api;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.mltds.sargeras.api.spi.SagaBean;
+import org.mltds.sargeras.api.spi.SagaBeanFactory;
 import org.mltds.sargeras.exception.SagaException;
 import org.mltds.sargeras.manager.Manager;
 import org.mltds.sargeras.repository.Repository;

@@ -17,6 +17,10 @@ public class ContextDO {
     private String currentTx;
     private String preExecutedTx;
     private String preCompensatedTx;
+
+    private int triggerCount;
+    private Date nextTriggerTime;
+
     private Date createTime;
     private Date expireTime;
     private Date modifyTime;
@@ -83,6 +87,22 @@ public class ContextDO {
 
     public void setPreCompensatedTx(String preCompensatedTx) {
         this.preCompensatedTx = preCompensatedTx;
+    }
+
+    public int getTriggerCount() {
+        return triggerCount;
+    }
+
+    public void setTriggerCount(int triggerCount) {
+        this.triggerCount = triggerCount;
+    }
+
+    public Date getNextTriggerTime() {
+        return nextTriggerTime;
+    }
+
+    public void setNextTriggerTime(Date nextTriggerTime) {
+        this.nextTriggerTime = nextTriggerTime;
     }
 
     public Date getCreateTime() {

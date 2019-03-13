@@ -1,4 +1,4 @@
-package org.mltds.sargeras.test.example;
+package org.mltds.sargeras.test.example.example1;
 
 import org.mltds.sargeras.api.SagaContext;
 import org.mltds.sargeras.api.SagaTx;

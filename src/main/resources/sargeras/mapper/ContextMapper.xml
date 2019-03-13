@@ -13,7 +13,10 @@
         <result property="currentTx" column="current_tx"/>
         <result property="preExecutedTx" column="pre_executed_tx"/>
         <result property="preCompensatedTx" column="pre_compensated_tx"/>
+        <result property="triggerCount" column="trigger_count"/>
+        <result property="nextTriggerTime" column="next_trigger_time"/>
         <result property="createTime" column="create_time"/>
+        <result property="expireTime" column="expire_time"/>
         <result property="modifyTime" column="modify_time"/>
     </resultMap>
 
@@ -23,11 +26,9 @@
     </select>
 
     <select id="selectByBiz" resultMap="ContextRM">
-
         SELECT * FROM saga_context
         WHERE
         app_name = #{appName} and biz_name = #{bizName} and biz_id = #{bizId}
-
     </select>
 
 
@@ -36,9 +37,15 @@
             SELECT LAST_INSERT_ID() AS id
         </selectKey>
         INSERT INTO saga_context
-        (`app_name`,`biz_name`,`biz_id`,`status`,`current_tx`,`pre_executed_tx`,`pre_compensated_tx`,`create_time`,`modify_time`)
+        (`app_name`,`biz_name`,`biz_id`,`status`,
+        `current_tx`,`pre_executed_tx`,`pre_compensated_tx`,
+        `trigger_count`,`next_trigger_time`,
+        `create_time`,`expire_time`,`modify_time`)
         VALUES
-        (#{appName},#{bizName},#{bizId},#{status},#{currentTx},#{preExecutedTx},#{preCompensatedTx},#{createTime},#{modifyTime})
+        (#{appName},#{bizName},#{bizId},#{status},
+        #{currentTx},#{preExecutedTx},#{preCompensatedTx},
+        #{triggerCount},#{nextTriggerTime},
+        #{createTime},#{expireTime},#{modifyTime})
     </insert>
 
     <update id="updateById" parameterType="Context">
@@ -56,11 +63,25 @@
             <if test="preCompensatedTx != null">
                 `pre_compensated_tx` = #{preCompensatedTx},
             </if>
+            <if test="nextTriggerTime != null">
+                `next_trigger_time` = #{nextTriggerTime},
+            </if>
             <if test="modifyTime != null">
                 `modify_time` = #{modifyTime},
             </if>
         </set>
         WHERE id = #{id}
     </update>
+
+    <update id="incrementTriggerCount">
+        UPDATE saga_context SET trigger_count = trigger_count + 1 , modify_time = #{modifyTime} WHERE id = #{id}
+    </update>
+
+    <select id="findNeedRetryContextList" resultType="java.lang.Long">
+        select id from saga_context where
+        <![CDATA[ `next_trigger_time` <= #{triggerTime} ]]>
+        and `status` in ('INIT','EXECUTING','COMPENSATING')
+        order by `next_trigger_time` limit #{limit};
+    </select>
 
 </mapper>

@@ -17,11 +17,15 @@ public class SagaConfig {
     public static final String CONFIG_FILE = "/sargeras.properties";
     public static final String CONFIG_FILE_DEFAULT = "/sargeras/sargeras.default.properties";
 
-
-    public static final String R_R_DATASOURCE = "repository.rdbms.datasource.";
+    public static final String FACTORY_PREFIX = "factory.";
+    public static final String REPOSITORY_RDBMS_DATASOURCE = "repository.rdbms.datasource.";
     public static final String LISTENER_LOGGER_NAME = "listener.logger.name";
 
-
+    /* pollretry */
+    public static final String POLLRETRY_PREFIX = "pollretry.";
+    public static final String POLLRETRY_NTHREADS = POLLRETRY_PREFIX + "nthreads";
+    public static final String POLLRETRY_LIMIT = POLLRETRY_PREFIX + "limit";
+    public static final String POLLRETRY_INTERVAL = POLLRETRY_PREFIX + "interval";
 
     private static final Logger logger = LoggerFactory.getLogger(SagaConfig.class);
     private static Properties prop = new Properties();

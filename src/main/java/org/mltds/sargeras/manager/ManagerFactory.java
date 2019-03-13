@@ -1,6 +1,6 @@
 package org.mltds.sargeras.manager;
 
-import org.mltds.sargeras.api.SagaBeanFactory;
+import org.mltds.sargeras.api.spi.SagaBeanFactory;
 
 /**
  * @author sunyi

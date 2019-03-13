@@ -1,4 +1,4 @@
-package org.mltds.sargeras.test.example;
+package org.mltds.sargeras.test.example.example1;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,7 +37,6 @@ public class NotifyFamily implements SagaTx {
 
     @Override
     public SagaTxStatus compensate(SagaContext context) {
-        context.setBizResult("Hi, guys, 你去不了了，咱们去开黑吧！");
         return SagaTxStatus.SUCCESS;
     }
 }

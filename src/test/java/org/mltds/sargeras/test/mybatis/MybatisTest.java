@@ -3,6 +3,7 @@ package org.mltds.sargeras.test.mybatis;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.ibatis.io.Resources;
@@ -63,6 +64,14 @@ public class MybatisTest {
 
         sqlSession.close();
 
+    }
+
+    @Test
+    public void testFindNeedRetryContextList() {
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+        ContextMapper mapper = sqlSession.getMapper(ContextMapper.class);
+        List<Long> list = mapper.findNeedRetryContextList(new Date(), 100);
+        System.out.println(list.size());
     }
 
 }

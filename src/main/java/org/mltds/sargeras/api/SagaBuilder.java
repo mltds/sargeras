@@ -1,5 +1,7 @@
 package org.mltds.sargeras.api;
 
+import org.mltds.sargeras.listener.SagaListener;
+
 /**
  * 用于构建一个 Saga
  * 
@@ -25,6 +27,25 @@ public class SagaBuilder {
 
     public SagaBuilder addListener(SagaListener listener) {
         saga.addListener(listener);
+        return this;
+    }
+
+    public SagaBuilder setLockTimeout(int lockTimeout) {
+        saga.setLockTimeout(lockTimeout);
+        return this;
+    }
+
+    public SagaBuilder setBizTimeout(int bizTimeout) {
+        saga.setBizTimeout(bizTimeout);
+        return this;
+    }
+
+    /**
+     * @param triggerInterval 例如{1,5,10,100} 第一次触发间隔为1秒，第二次5秒，第三次10秒，第四次及以后为100秒
+     * @return
+     */
+    public SagaBuilder setTriggerInterval(int[] triggerInterval) {
+        saga.setTriggerInterval(triggerInterval);
         return this;
     }
 

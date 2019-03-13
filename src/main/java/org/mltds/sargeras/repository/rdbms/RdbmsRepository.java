@@ -2,6 +2,7 @@ package org.mltds.sargeras.repository.rdbms;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import org.mltds.sargeras.api.*;
 import org.mltds.sargeras.exception.SagaException;
@@ -13,6 +14,7 @@ import org.mltds.sargeras.repository.rdbms.model.ContextDO;
 import org.mltds.sargeras.repository.rdbms.model.ContextInfoDO;
 import org.mltds.sargeras.repository.rdbms.model.ContextLockDO;
 import org.mltds.sargeras.serialize.Serialize;
+import org.mltds.sargeras.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,20 +32,22 @@ public class RdbmsRepository implements Repository {
     private Serialize serialize = SagaApplication.getSerialize();
 
     @Override
-    public Long saveContext(SagaContext context) {
+    public long saveContext(SagaContext context) {
 
         ContextDO contextDO = sagaContextToContextDO(context);
-        int insert = contextMapper.insert(contextDO);
+        contextDO.setCreateTime(new Date());
+        contextDO.setModifyTime(new Date());
+        contextMapper.insert(contextDO);
         context.setId(contextDO.getId());
         return contextDO.getId();
     }
 
     @Override
-    public SagaContext loadContext(Long id) {
+    public SagaContext loadContext(long contextId) {
 
-        ContextDO contextDO = contextMapper.selectById(id);
+        ContextDO contextDO = contextMapper.selectById(contextId);
         if (contextDO == null) {
-            throw new SagaException("查找Context失败，ID: " + id);
+            throw new SagaException("查找Context失败，ID: " + contextId);
         }
 
         String appName = contextDO.getAppName();
@@ -55,16 +59,36 @@ public class RdbmsRepository implements Repository {
         }
 
         try {
-            SagaContext sagaContext = contextDOToSagaContext(contextDO, saga);
-            return sagaContext;
+            return contextDOToSagaContext(contextDO, saga);
         } catch (ClassNotFoundException e) {
-            throw new SagaException("重新构建SagaContext失败，ID：" + id, e);
+            throw new SagaException("重新构建SagaContext失败，ID：" + contextId, e);
         }
 
     }
 
     @Override
-    public void saveContextStatus(Long contextId, SagaStatus status) {
+    public SagaContext loadContext(String appName, String bizName, String bizId) {
+
+        ContextDO contextDO = contextMapper.selectByBiz(appName, bizName, bizId);
+        if (contextDO == null) {
+            throw new SagaException("查找Context失败，appName: " + appName + "，bizName：" + bizName + "，bizId：" + bizId);
+        }
+
+        Saga saga = SagaApplication.getSaga(appName, bizName);
+        if (saga == null) {
+            throw new SagaException("查询 Saga 失败，AppName：" + appName + ", BizName: " + bizName);
+        }
+
+        try {
+            return contextDOToSagaContext(contextDO, saga);
+        } catch (ClassNotFoundException e) {
+            throw new SagaException("重新构建SagaContext失败，ID：" + contextDO.getId(), e);
+        }
+
+    }
+
+    @Override
+    public void saveContextStatus(long contextId, SagaStatus status) {
         ContextDO contextDO = new ContextDO();
         contextDO.setId(contextId);
         contextDO.setStatus(status);
@@ -73,7 +97,7 @@ public class RdbmsRepository implements Repository {
     }
 
     @Override
-    public void saveCurrentTx(Long contextId, Class<? extends SagaTx> cls) {
+    public void saveCurrentTx(long contextId, Class<? extends SagaTx> cls) {
         ContextDO contextDO = new ContextDO();
         contextDO.setId(contextId);
         contextDO.setCurrentTx(cls.getName());
@@ -82,7 +106,7 @@ public class RdbmsRepository implements Repository {
     }
 
     @Override
-    public void savePreExecutedTx(Long contextId, Class<? extends SagaTx> cls) {
+    public void savePreExecutedTx(long contextId, Class<? extends SagaTx> cls) {
         ContextDO contextDO = new ContextDO();
         contextDO.setId(contextId);
         contextDO.setPreExecutedTx(cls.getName());
@@ -91,7 +115,7 @@ public class RdbmsRepository implements Repository {
     }
 
     @Override
-    public void savePreCompensatedTx(Long contextId, Class<? extends SagaTx> cls) {
+    public void savePreCompensatedTx(long contextId, Class<? extends SagaTx> cls) {
         ContextDO contextDO = new ContextDO();
         contextDO.setId(contextId);
         contextDO.setPreCompensatedTx(cls.getName());
@@ -100,7 +124,21 @@ public class RdbmsRepository implements Repository {
     }
 
     @Override
-    public void saveContextInfo(Long contextId, String key, Object info) {
+    public void incrementTriggerCount(long contextId) {
+        contextMapper.incrementTriggerCount(contextId, new Date());
+    }
+
+    @Override
+    public void saveNextTriggerTime(long contextId, Date nextTriggerTime) {
+        ContextDO contextDO = new ContextDO();
+        contextDO.setId(contextId);
+        contextDO.setNextTriggerTime(nextTriggerTime);
+        contextDO.setModifyTime(new Date());
+        contextMapper.updateById(contextDO);
+    }
+
+    @Override
+    public void saveContextInfo(long contextId, String key, Object info) {
         ContextInfoDO contextInfoDO = contextInfoMapper.selectByKey(contextId, key);
         if (contextInfoDO == null) {
             contextInfoDO = new ContextInfoDO();
@@ -124,7 +162,7 @@ public class RdbmsRepository implements Repository {
     }
 
     @Override
-    public <T> T loadContextInfo(Long contextId, String key, Class<T> cls) {
+    public <T> T loadContextInfo(long contextId, String key, Class<T> cls) {
 
         ContextInfoDO contextInfoDO = contextInfoMapper.selectByKey(contextId, key);
         if (contextInfoDO == null || contextInfoDO.getInfo() == null) {
@@ -134,7 +172,7 @@ public class RdbmsRepository implements Repository {
     }
 
     @Override
-    public boolean lock(Long id, String reqId, int timeoutSec) {
+    public boolean lock(long id, String reqId, int timeoutSec) {
 
         try {
             ContextLockDO contextLockDO = contextLockMapper.select(id);
@@ -146,25 +184,25 @@ public class RdbmsRepository implements Repository {
                 Calendar c = Calendar.getInstance();
                 boolean after = c.getTime().after(contextLockDO.getExpireTime());
                 if (after) {
-                    int delete = contextLockMapper.delete(id, reqId);
+                    int delete = contextLockMapper.delete(id, contextLockDO.getReqId());
                     if (delete <= 0) {
                         return false;
                     } else {
                         contextLockDO = newLock(id, reqId, timeoutSec);
                         contextLockMapper.insert(contextLockDO);
+                        return true;
                     }
                 } else {
                     return false;
                 }
             }
-            return false;
         } catch (Exception e) {
             logger.warn("操作数据库获取锁失败ContextId:{},ReqId:{}", new Object[] { id, reqId }, e);
             return false;
         }
     }
 
-    private ContextLockDO newLock(Long id, String reqId, int timeoutSec) {
+    private ContextLockDO newLock(long id, String reqId, int timeoutSec) {
         ContextLockDO contextLockDO = new ContextLockDO();
         contextLockDO.setContextId(id);
         contextLockDO.setReqId(reqId);
@@ -179,7 +217,7 @@ public class RdbmsRepository implements Repository {
     }
 
     @Override
-    public boolean unlock(Long id, String reqId) {
+    public boolean unlock(long id, String reqId) {
 
         try {
             ContextLockDO contextLockDO = contextLockMapper.select(id);
@@ -197,6 +235,11 @@ public class RdbmsRepository implements Repository {
             logger.warn("操作数据库释放锁失败ContextId:{},ReqId:{}", new Object[] { id, reqId }, e);
             return false;
         }
+    }
+
+    @Override
+    public List<Long> findNeedRetryContextList(int limit) {
+        return contextMapper.findNeedRetryContextList(new Date(), limit);
     }
 
     private ContextDO sagaContextToContextDO(SagaContext sagaContext) {
@@ -218,8 +261,12 @@ public class RdbmsRepository implements Repository {
             contextDO.setPreCompensatedTx(sagaContext.getPreCompensatedTx().getName());
         }
 
-        contextDO.setCreateTime(new Date());
-        contextDO.setModifyTime(new Date());
+        contextDO.setTriggerCount(sagaContext.getTriggerCount());
+        contextDO.setNextTriggerTime(sagaContext.getNextTriggerTime());
+
+        contextDO.setCreateTime(sagaContext.getCreateTime());
+        contextDO.setExpireTime(sagaContext.getExpireTime());
+        contextDO.setModifyTime(sagaContext.getModifyTime());
         return contextDO;
     }
 
@@ -231,13 +278,21 @@ public class RdbmsRepository implements Repository {
         sagaContext.setBizId(contextDO.getBizId());
         sagaContext.setStatus(contextDO.getStatus());
 
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        Class<?> currentTx = Utils.loadClass(contextDO.getCurrentTx());
+        sagaContext.setCurrentTx((Class<? extends SagaTx>) currentTx);
 
-        Class<?> preExecutedTx = Class.forName(contextDO.getPreExecutedTx(), false, classLoader);
+        Class<?> preExecutedTx = Utils.loadClass(contextDO.getPreExecutedTx());
         sagaContext.setPreExecutedTx((Class<? extends SagaTx>) preExecutedTx);
 
-        Class<?> preCompensatedTx = Class.forName(contextDO.getPreCompensatedTx(), false, classLoader);
+        Class<?> preCompensatedTx = Utils.loadClass(contextDO.getPreCompensatedTx());
         sagaContext.setPreCompensatedTx((Class<? extends SagaTx>) preCompensatedTx);
+
+        sagaContext.setTriggerCount(contextDO.getTriggerCount());
+        sagaContext.setNextTriggerTime(contextDO.getNextTriggerTime());
+
+        sagaContext.setCreateTime(contextDO.getCreateTime());
+        sagaContext.setExpireTime(contextDO.getExpireTime());
+        sagaContext.setModifyTime(contextDO.getModifyTime());
 
         return sagaContext;
     }

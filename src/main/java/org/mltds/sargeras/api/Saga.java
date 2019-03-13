@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.mltds.sargeras.listener.SagaListener;
 import org.mltds.sargeras.manager.Manager;
 
 /**
@@ -17,16 +18,20 @@ public class Saga {
     /**
      * 默认每次执行时占有锁的最长时间，100秒。
      */
-    private static final Integer DEFAULT_LOCK_TIMEOUT = 100;
+    private static final int DEFAULT_LOCK_TIMEOUT = 100;
     /**
      * 默认每笔业务的超时时间，1天。
      */
-    private static final Integer DEFAULT_BIZ_TIMEOUT = 60 * 60 * 24;
+    private static final int DEFAULT_BIZ_TIMEOUT = 60 * 60 * 24;
+
+    private static final int[] DEFAULT_TRIGGER_INTERVAL = new int[] { 1, 2, 4, 8, 16, 32, 64, 128 };
 
     private final String appName;
     private final String bizName;
-    private Integer lockTimeout = DEFAULT_LOCK_TIMEOUT;
-    private Integer bizTimeout = DEFAULT_BIZ_TIMEOUT;
+
+    private int lockTimeout = DEFAULT_LOCK_TIMEOUT;
+    private int bizTimeout = DEFAULT_BIZ_TIMEOUT;
+    private int[] triggerInterval = DEFAULT_TRIGGER_INTERVAL;
 
     private List<SagaTx> txList = new ArrayList<>();
     private List<SagaListener> listenerList = new ArrayList<>();
@@ -68,28 +73,41 @@ public class Saga {
         this.listenerList.add(listener);
     }
 
-    public Integer getLockTimeout() {
+    public int getLockTimeout() {
         return lockTimeout;
     }
 
-    public void setLockTimeout(Integer lockTimeout) {
+    public void setLockTimeout(int lockTimeout) {
         this.lockTimeout = lockTimeout;
     }
 
-    public Integer getBizTimeout() {
+    public int getBizTimeout() {
         return bizTimeout;
     }
 
-    public void setBizTimeout(Integer bizTimeout) {
+    public void setBizTimeout(int bizTimeout) {
         this.bizTimeout = bizTimeout;
     }
 
+    public int[] getTriggerInterval() {
+        return triggerInterval;
+    }
+
+    public void setTriggerInterval(int[] triggerInterval) {
+        this.triggerInterval = triggerInterval;
+    }
+
     /**
-     * 执行一个长事务
+     * 首次执行
      */
     public SagaResult start(String bizId, Object bizParam) {
         Manager manager = SagaApplication.getManager();
         return manager.start(this, bizId, bizParam);
+    }
+
+    public SagaResult restart(String bizId) {
+        Manager manager = SagaApplication.getManager();
+        return manager.restart(this, bizId);
     }
 
 }

@@ -19,7 +19,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 public class MybatisDataSourceFactory implements DataSourceFactory {
 
     // CONFIG_PREFIX, 为了缩短代码所以缩写为P
-    private static final String P = SagaConfig.R_R_DATASOURCE;
+    private static final String P = SagaConfig.REPOSITORY_RDBMS_DATASOURCE;
 
     private static final Logger logger = LoggerFactory.getLogger(MybatisDataSourceFactory.class);
 

@@ -1,6 +1,5 @@
 package org.mltds.sargeras.repository.rdbms;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -43,7 +42,7 @@ public class RdbmsRepositoryFactory implements RepositoryFactory {
             }
 
             try {
-                repository = new RdbmsRepository();
+                RdbmsRepository repository = new RdbmsRepository();
 
                 InputStream inputStream = Resources.getResourceAsStream(MYBATIS_RESOURCE);
                 sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
@@ -57,6 +56,7 @@ public class RdbmsRepositoryFactory implements RepositoryFactory {
                 ContextLockMapper contextLockMapper = createMapperProxy(ContextLockMapper.class);
                 repository.setContextLockMapper(contextLockMapper);
 
+                this.repository = repository;
 
             } catch (Exception e) {
                 throw new SagaException(RdbmsRepository.class.getSimpleName() + "初始化失败!", e);

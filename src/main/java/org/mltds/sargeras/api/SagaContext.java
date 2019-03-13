@@ -1,8 +1,6 @@
 package org.mltds.sargeras.api;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.mltds.sargeras.repository.Repository;
@@ -16,17 +14,12 @@ import org.mltds.sargeras.repository.Repository;
  */
 public class SagaContext {
 
-    public static final String BIZ_PARAM_KEY = "BIZ_PARAM";
-    public static final String BIZ_RESULT_KEY = "BIZ_RESULT";
+    private static final String BIZ_PARAM_KEY = "BIZ_PARAM";
+    private static final String BIZ_RESULT_KEY = "BIZ_RESULT";
 
     private Saga saga;
 
     private Long id;
-    /**
-     * 每次执行的id<br/>
-     * 比如第一次执行，onceId 为 A ，返回处理中后挂起，过段时间第二次执行的时候为 B 。<br/>
-     */
-    private transient String onceId = UUID.randomUUID().toString().replace("-", "");
 
     private String bizId;
     private Object bizParam;
@@ -37,6 +30,35 @@ public class SagaContext {
     private Class<? extends SagaTx> currentTx;
     private Class<? extends SagaTx> preExecutedTx;
     private Class<? extends SagaTx> preCompensatedTx;
+
+    /**
+     * 每次执行的id, 伴随着 Context 对象的生命周期，不需要存储<br/>
+     * 比如第一次执行，triggerId 为 A ，返回处理中后挂起，过段时间第二次执行的时候为 B 。<br/>
+     */
+    private transient String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+    /**
+     * 触发执行次数，首次执行记为1，每次轮询重试+1
+     */
+    private int triggerCount;
+    /**
+     * 当遇到处理中的情况时，期望下一次轮询重试的触发时间。
+     */
+    private Date nextTriggerTime;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 过期时间，过期时间，创建时间加业务超时时间
+     */
+    private Date expireTime;
+
+    /**
+     * 最新修改时间
+     */
+    private Date modifyTime;
 
     private Map<String, Object> transientInfo = new HashMap<>();
 
@@ -60,8 +82,8 @@ public class SagaContext {
         this.id = id;
     }
 
-    public String getOnceId() {
-        return onceId;
+    public String getTriggerId() {
+        return triggerId;
     }
 
     public SagaStatus getStatus() {
@@ -85,6 +107,7 @@ public class SagaContext {
         this.bizId = bizId;
     }
 
+    @SuppressWarnings("unchecked")
     public <T> T getBizParam(Class<T> t) {
         if (bizParam != null) {
             return (T) bizParam;
@@ -94,9 +117,14 @@ public class SagaContext {
 
     public void setBizParam(Object bizParam) {
         this.bizParam = bizParam;
+    }
+
+    public void saveBizParam(Object bizParam) {
+        setBizParam(bizParam);
         savePersistentInfo(BIZ_PARAM_KEY, bizParam);
     }
 
+    @SuppressWarnings("unchecked")
     public <T> T getBizResult(Class<T> t) {
         if (bizResult != null) {
             return (T) bizResult;
@@ -106,6 +134,10 @@ public class SagaContext {
 
     public void setBizResult(Object bizResult) {
         this.bizResult = bizResult;
+    }
+
+    public void saveBizResult(Object bizResult) {
+        setBizResult(bizResult);
         savePersistentInfo(BIZ_RESULT_KEY, bizResult);
     }
 
@@ -166,22 +198,102 @@ public class SagaContext {
         repository.savePreCompensatedTx(this.id, preCompensatedTx);
     }
 
+    public int getTriggerCount() {
+        return triggerCount;
+    }
+
+    public void setTriggerCount(int triggerCount) {
+        this.triggerCount = triggerCount;
+    }
+
+    public Date getNextTriggerTime() {
+        return nextTriggerTime;
+    }
+
+    public void setNextTriggerTime(Date nextTriggerTime) {
+        this.nextTriggerTime = nextTriggerTime;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Date getExpireTime() {
+        return expireTime;
+    }
+
+    public void setExpireTime(Date expireTime) {
+        this.expireTime = expireTime;
+    }
+
+    public Date getModifyTime() {
+        return modifyTime;
+    }
+
+    public void setModifyTime(Date modifyTime) {
+        this.modifyTime = modifyTime;
+    }
+
+    /**
+     * 将触发次数+1，并保存到存储中。
+     * 
+     * @return
+     */
+    public int incrementTriggerCount() {
+        repository.incrementTriggerCount(id);
+        triggerCount++;
+        return triggerCount;
+    }
+
+    /**
+     * 计算下一次的触发时间，并保存到存储中。
+     * 
+     * @return
+     */
+    public Date saveNextTriggerTime() {
+        Date nextTriggerTime = calculationNextTriggerTime();
+        repository.saveNextTriggerTime(id, nextTriggerTime);
+        this.nextTriggerTime = nextTriggerTime;
+        return nextTriggerTime;
+    }
+
+    public Date calculationNextTriggerTime() {
+
+        int interval = 0;
+
+        int[] triggerInterval = saga.getTriggerInterval();
+        int length = saga.getTriggerInterval().length;
+        if (triggerCount <= 0) {
+            interval = triggerInterval[0];
+        } else if (triggerCount < length) {
+            interval = triggerInterval[triggerCount - 1];
+        } else {
+            interval = triggerInterval[length - 1];
+        }
+
+        Calendar now = Calendar.getInstance();
+        now.add(Calendar.SECOND, interval);
+        return now.getTime();
+    }
+
     /**
      * 获取锁，非阻塞，独占这个SagaContext
      *
      * @return true 为获取锁成功；false 为失败
      */
     public boolean lock() {
-        boolean b = locked.get();
-        if (b) {
+        if (isLocked()) {
             return true;
         } else {
             Integer lockTimeout = saga.getLockTimeout();
-            boolean lock = repository.lock(id, onceId, lockTimeout);
+            boolean lock = repository.lock(id, triggerId, lockTimeout);
             locked.set(lock);
             return lock;
         }
-
     }
 
     /**
@@ -190,15 +302,14 @@ public class SagaContext {
      * @return true 为释放锁成功；false为释放失败，比如持有锁超时了
      */
     public boolean unlock() {
-        boolean b = locked.get();
-        if (b) {
-            boolean unlock = repository.unlock(id, onceId);
+        if (!isLocked()) {
+            return true;
+        } else {
+            boolean unlock = repository.unlock(id, triggerId);
             if (unlock) {
                 locked.set(false);
             }
             return unlock;
-        } else {
-            return false;
         }
     }
 
