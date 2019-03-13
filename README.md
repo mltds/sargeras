@@ -8,7 +8,60 @@
 
 其实是一个根据 Saga 思想实现的一个分布式事物框架，取名为 sargeras 是因为并没有完全的按照 Saga 的思想实现，所以在命名上也做了改变，即有关系又有差异，以示区分。
 
-## 如何使用
+## 快速启动
+
+###### 假设依赖默认实现
+ 1. 添加 Maven 依赖到系统中
+    ```xml
+    <dependency>
+        <groupId>org.mltds.sargeras</groupId>
+        <artifactId>sargeras</artifactId>
+        <version>0.1.1-SNAPSHOT</version>
+    </dependency>
+    ```
+ 
+ 1. 需要一个关系型数据库，支持 JDBC 的，例如 MySQL ，执行 init.sql 脚本。
+ 1. 配置文件一枚，命名为：sargeras.properties ，放在 classpath 目录下。（参见test模块的配置）
+    > repository.rdbms.datasource.url=jdbc:mysql://mydb.com:3306/sargeras  
+      repository.rdbms.datasource.username=sunyi  
+      repository.rdbms.datasource.password=sunyi
+ 1. 使用 SagaBuilder 配置一个 Saga 流程，使用 SagaLauncher 启动 Saga 框架。（参见 test 模块的 Example1）
+     ```java
+    SagaBuilder.newBuilder(appName, bizName)// 定义一个业务
+            .addTx(new BookCar())// 订汽车
+            .addTx(new BookAir())// 订机票
+            .addTx(new BookHotel(true))// 订酒店，false为强制失败
+            .addTx(new NotifyFamily()) // 告诉家人
+            .addListener(new LogListener()) // 增加一些log输出方便跟踪
+            .build();
+    
+    SagaLauncher.launch(); // 需要先 Build Saga
+    ```
+ 1. 使用 Saga.start() 启动  一个Saga流程，传入对应的 BizId 和 BizParam。（参见 test 模块的 Example1）
+ 
+    ```java
+    // 业务订单ID，唯一且必须先由业务系统生成并落库，这里举个栗子。
+    String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+
+    // 家人信息
+    FamilyMember member = new FamilyMember();
+    member.id = "123456789012345678";
+    member.name = "小乌龟";
+    member.tel = "13100000000";
+    member.travelDestination = "Croatia Plitvice Lakes National Park";
+
+    // 获取业务流程（模板）
+    Saga saga = SagaApplication.getSaga(appName, bizName); // 任何地方都可以获取到这个Saga
+
+    // 执行业务
+    SagaResult result = saga.start(bizId, member);
+
+    SagaStatus status = result.getStatus(); // 获取任务执行状态
+    Object bizResult = result.getBizResult(Object.class); // 获取任务执行结果
+
+    ```
+ 
+ 
 
 
 ## 详细介绍
@@ -17,6 +70,8 @@
 ## 其他
 
 #### 没想清楚的地方
+ * Saga的核心，应该是嵌入在业务系统里还是一个独立系统？
+    目前SNAPSHOT版本是嵌入在业务系统里，比较简单、稳定、实用。但弊端也很明显，不容易升级维护，不方便做监控，对业务系统有入侵。
  * Listener 是否应该有多个？  
     如果只允许有一个Listener，那么 onError 方法应当返回状态，现在默认为处理中
  * 当某个 TX execute 返回 EXE_FAIL_TO_COMP 时，这个 TX 是否需要补偿？  
@@ -33,6 +88,7 @@
  * 锁的实现依赖 Repository，感觉不是很合理。
  * 因某些代码比较繁琐，有的地方使用一点点 DDD 的思想，整体编码风格不是很一致
  * 现在必须先 Build Saga ，才能启动Application，感觉顺序有些奇怪
+ * 都是硬编码的风格，或许可以支持注解式变成
 
 #### 版本记录
 

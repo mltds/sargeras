@@ -59,7 +59,9 @@ public class Example1 {
         // 执行业务
         SagaResult result = saga.start(bizId, member);
 
-        SagaStatus status = result.getStatus();
+        SagaStatus status = result.getStatus(); // 获取任务执行状态
+        Object bizResult = result.getBizResult(Object.class); // 获取任务执行结果
+
         if (SagaStatus.EXECUTE_SUCC.equals(status)) {
             Map bizResult = result.getBizResult(Map.class);
             logger.info("预定成功，相关信息为：" + JSON.toJSONString(bizResult, true));
