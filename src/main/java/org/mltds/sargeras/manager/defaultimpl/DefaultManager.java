@@ -112,7 +112,12 @@ public class DefaultManager implements Manager {
                     status = SagaStatus.EXECUTE_SUCC;
                     context.saveStatus(status);
                 } else if (SagaTxStatus.PROCESSING.equals(txStatus)) {
-                    context.saveNextTriggerTime();
+                    if ((new Date()).after(context.getExpireTime())) {
+                        status = SagaStatus.OVERTIME;
+                        context.saveStatus(status);
+                    } else {
+                        context.saveNextTriggerTime();
+                    }
                 } else if (SagaTxStatus.EXE_FAIL_TO_COMP.equals(txStatus)) {
                     status = SagaStatus.COMPENSATING;
                     context.saveStatus(status);
@@ -128,7 +133,12 @@ public class DefaultManager implements Manager {
                     status = SagaStatus.COMPENSATE_SUCC;
                     context.saveStatus(status);
                 } else if (SagaTxStatus.PROCESSING.equals(txStatus)) {
-                    context.saveNextTriggerTime();
+                    if ((new Date()).after(context.getExpireTime())) {
+                        status = SagaStatus.OVERTIME;
+                        context.saveStatus(status);
+                    } else {
+                        context.saveNextTriggerTime();
+                    }
                 } else if (SagaTxStatus.COMP_FAIL_TO_FINAL.equals(txStatus)) {
                     status = SagaStatus.COMPENSATE_FAIL;
                     context.saveStatus(status);
