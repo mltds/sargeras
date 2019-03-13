@@ -4,6 +4,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.mltds.sargeras.api.*;
 import org.mltds.sargeras.exception.SagaException;
 import org.mltds.sargeras.repository.Repository;
@@ -25,6 +26,8 @@ public class RdbmsRepository implements Repository {
 
     private static final Logger logger = LoggerFactory.getLogger(RdbmsRepository.class);
 
+    private SqlSessionFactory sqlSessionFactory;
+
     private ContextMapper contextMapper;
     private ContextInfoMapper contextInfoMapper;
     private ContextLockMapper contextLockMapper;
@@ -32,13 +35,17 @@ public class RdbmsRepository implements Repository {
     private Serialize serialize = SagaApplication.getSerialize();
 
     @Override
-    public long saveContext(SagaContext context) {
+    @Transaction
+    public long saveContextAndLock(SagaContext context) {
 
         ContextDO contextDO = sagaContextToContextDO(context);
         contextDO.setCreateTime(new Date());
         contextDO.setModifyTime(new Date());
         contextMapper.insert(contextDO);
         context.setId(contextDO.getId());
+
+        context.lock();
+
         return contextDO.getId();
     }
 
@@ -197,7 +204,6 @@ public class RdbmsRepository implements Repository {
                 }
             }
         } catch (Exception e) {
-            logger.warn("操作数据库获取锁失败ContextId:{},ReqId:{}", new Object[] { id, reqId }, e);
             return false;
         }
     }

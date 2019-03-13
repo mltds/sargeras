@@ -32,7 +32,7 @@ public class DefaultManager implements Manager {
         Date expireTime = now.getTime();
         context.setExpireTime(expireTime);
 
-        repository.saveContext(context);// 保存并生成ID
+        repository.saveContextAndLock(context);// 保存并生成ID
 
         context.saveBizParam(bizParam);// 需要先有 ContextId 才能 Save
 
@@ -111,6 +111,7 @@ public class DefaultManager implements Manager {
                 if (SagaTxStatus.SUCCESS.equals(txStatus)) {
                     status = SagaStatus.EXECUTE_SUCC;
                     context.saveStatus(status);
+                    listenerChain.onExecuteSucc(context);
                 } else if (SagaTxStatus.PROCESSING.equals(txStatus)) {
                     if ((new Date()).after(context.getExpireTime())) {
                         status = SagaStatus.OVERTIME;
@@ -133,6 +134,7 @@ public class DefaultManager implements Manager {
                 if (SagaTxStatus.SUCCESS.equals(txStatus)) {
                     status = SagaStatus.COMPENSATE_SUCC;
                     context.saveStatus(status);
+                    listenerChain.onCompensateSucc(context);
                 } else if (SagaTxStatus.PROCESSING.equals(txStatus)) {
                     if ((new Date()).after(context.getExpireTime())) {
                         status = SagaStatus.OVERTIME;

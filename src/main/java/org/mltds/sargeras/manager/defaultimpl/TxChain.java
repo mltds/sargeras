@@ -21,7 +21,7 @@ public class TxChain implements SagaTx {
     @Override
     public SagaTxStatus execute(SagaContext context) {
 
-        Class<? extends SagaTx> preExecutedTx = context.getPreExecutedTx();
+        Class<? extends SagaTx> currentTx = context.getCurrentTx();
 
         SagaTxStatus txStatus = null;
 
@@ -31,19 +31,20 @@ public class TxChain implements SagaTx {
             Class<? extends SagaTx> txCls = tx.getClass();
 
             if (!canExecute) {
-                if (preExecutedTx == null) {
-                    // 首次执行，从当前 TX 开始执行
+                if (currentTx == null) {
+                    // 首次执行，从当前第一个 TX 开始执行
                     canExecute = true;
-                } else if (tx.getClass().equals(preExecutedTx)) {
-                    // 之前执行过，那么从下一个 TX 开始执行
+                } else if (txCls.equals(currentTx)) {
+                    // 之前执行过，那么从记录中的的当前 TX 开始执行
                     canExecute = true;
-                    continue;
                 } else {
                     continue;
                 }
             }
 
-            context.saveCurrentTx(txCls);
+            if (!txCls.equals(currentTx)) {
+                context.saveCurrentTx(txCls);
+            }
 
             listenerChain.beforeExecute(context, tx);
             try {
@@ -74,8 +75,9 @@ public class TxChain implements SagaTx {
 
     @Override
     public SagaTxStatus compensate(SagaContext context) {
-        Class<? extends SagaTx> preExecutedTx = context.getPreExecutedTx();
+
         Class<? extends SagaTx> preCompensatedTx = context.getPreCompensatedTx();
+        Class<? extends SagaTx> currentTx = context.getCurrentTx();
 
         SagaTxStatus txStatus = null;
 
@@ -86,19 +88,20 @@ public class TxChain implements SagaTx {
             Class<? extends SagaTx> txCls = tx.getClass();
 
             if (!canCompensate) {
-                if (preCompensatedTx == null && preExecutedTx != null && tx.getClass().equals(preExecutedTx)) {
+                if (preCompensatedTx == null && currentTx != null && txCls.equals(currentTx)) {
                     // 首次进入补偿，当前TX是上次执行失败的TX，则将当前TX作为补偿起始点
                     canCompensate = true;
-                } else if (preCompensatedTx != null && tx.getClass().equals(preCompensatedTx)) {
-                    // 以前执行过某个TX补偿，从这个TX的下一个开始执行补偿
+                } else if (preCompensatedTx != null && txCls.equals(preCompensatedTx)) {
+                    // 以前执行过某个TX补偿，从这个TX开始执行补偿
                     canCompensate = true;
-                    continue;
                 } else {
                     continue;
                 }
             }
 
-            context.saveCurrentTx(txCls);
+            if (!txCls.equals(currentTx)) {
+                context.saveCurrentTx(txCls);
+            }
 
             listenerChain.beforeCompensate(context, tx);
             try {

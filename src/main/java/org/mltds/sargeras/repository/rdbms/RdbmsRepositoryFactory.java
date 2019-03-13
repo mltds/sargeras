@@ -25,9 +25,9 @@ public class RdbmsRepositoryFactory implements RepositoryFactory {
 
     private static final String MYBATIS_RESOURCE = "sargeras/sargeras-mybatis-config.xml";
 
+    private Repository repository;
     private SqlSessionFactory sqlSessionFactory;
-
-    private RdbmsRepository repository;
+    private ThreadLocal<SqlSession> sqlSessionThreadLocal = new ThreadLocal<>();
 
     @Override
     public Repository getObject() {
@@ -56,7 +56,9 @@ public class RdbmsRepositoryFactory implements RepositoryFactory {
                 ContextLockMapper contextLockMapper = createMapperProxy(ContextLockMapper.class);
                 repository.setContextLockMapper(contextLockMapper);
 
-                this.repository = repository;
+                Repository repositoryProxy = createRepositoryProxy(repository);// 为了支持事务
+
+                this.repository = repositoryProxy;
 
             } catch (Exception e) {
                 throw new SagaException(RdbmsRepository.class.getSimpleName() + "初始化失败!", e);
@@ -74,15 +76,30 @@ public class RdbmsRepositoryFactory implements RepositoryFactory {
         Object proxy = Proxy.newProxyInstance(classLoader, new Class[] { mapperCls }, new InvocationHandler() {
             @Override
             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                SqlSession sqlSession = sqlSessionFactory.openSession();
+
+                SqlSession sqlSession = sqlSessionThreadLocal.get();
+                boolean inTransaction = sqlSession != null;
+
+                if (!inTransaction) {
+                    sqlSession = sqlSessionFactory.openSession();
+                }
 
                 Object invoke;
                 try {
                     T mapper = sqlSession.getMapper(mapperCls);
                     invoke = method.invoke(mapper, args);
-                    sqlSession.commit();
+                    if (!inTransaction) {
+                        sqlSession.commit();
+                    }
+                } catch (Exception e) {
+                    if (!inTransaction) {
+                        sqlSession.rollback();
+                    }
+                    throw e;
                 } finally {
-                    sqlSession.close();
+                    if (!inTransaction) {
+                        sqlSession.close();
+                    }
                 }
                 return invoke;
             }
@@ -90,6 +107,43 @@ public class RdbmsRepositoryFactory implements RepositoryFactory {
 
         return (T) proxy;
 
+    }
+
+    private Repository createRepositoryProxy(RdbmsRepository repository) {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        Object proxy = Proxy.newProxyInstance(classLoader, new Class[] { Repository.class }, new InvocationHandler() {
+            @Override
+            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+
+                Object result = null;
+
+                Transaction transaction = method.getAnnotation(Transaction.class);
+                if (transaction != null) {
+                    SqlSession sqlSession = sqlSessionThreadLocal.get();
+                    if (sqlSession == null) {
+                        sqlSession = sqlSessionFactory.openSession();
+                        sqlSessionThreadLocal.set(sqlSession);
+                    }
+
+                    try {
+                        result = method.invoke(repository, args);
+                        sqlSession.commit();
+                    } catch (Exception e) {
+                        sqlSession.rollback();
+                        throw e;
+                    } finally {
+                        sqlSessionThreadLocal.remove();
+                        sqlSession.close();
+                    }
+                } else {
+                    result = method.invoke(repository, args);
+                }
+
+                return result;
+            }
+        });
+
+        return (Repository) proxy;
     }
 
 }

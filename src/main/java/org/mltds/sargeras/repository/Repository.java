@@ -16,7 +16,7 @@ public interface Repository extends SagaBean {
     /**
      * 如果 ID 在存储中存在则更新，否则作为一条新记录去创建。
      */
-    long saveContext(SagaContext context);
+    long saveContextAndLock(SagaContext context);
 
     /**
      * 根据 ContextId 从存储的信息中，重新构建出一个 {@link SagaContext}
