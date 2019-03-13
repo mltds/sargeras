@@ -115,6 +115,7 @@ public class DefaultManager implements Manager {
                     if ((new Date()).after(context.getExpireTime())) {
                         status = SagaStatus.OVERTIME;
                         context.saveStatus(status);
+                        listenerChain.onOvertime(context);
                     } else {
                         context.saveNextTriggerTime();
                     }
@@ -136,6 +137,7 @@ public class DefaultManager implements Manager {
                     if ((new Date()).after(context.getExpireTime())) {
                         status = SagaStatus.OVERTIME;
                         context.saveStatus(status);
+                        listenerChain.onOvertime(context);
                     } else {
                         context.saveNextTriggerTime();
                     }

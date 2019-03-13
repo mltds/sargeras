@@ -39,6 +39,28 @@ public class ListenerChain implements SagaListener {
     }
 
     @Override
+    public void onExecuteSucc(SagaContext context) {
+        for (SagaListener l : listenerList) {
+            try {
+                l.onExecuteSucc(context);
+            } catch (Exception e) {
+                this.onException(context, e);
+            }
+        }
+    }
+
+    @Override
+    public void onCompensateSucc(SagaContext context) {
+        for (SagaListener l : listenerList) {
+            try {
+                l.onCompensateSucc(context);
+            } catch (Exception e) {
+                this.onException(context, e);
+            }
+        }
+    }
+
+    @Override
     public void onExeFailToComp(SagaContext context) {
         for (SagaListener l : listenerList) {
             try {

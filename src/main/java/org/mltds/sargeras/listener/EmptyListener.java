@@ -21,6 +21,26 @@ public class EmptyListener implements SagaListener {
     }
 
     @Override
+    public void onExecuteSucc(SagaContext context) {
+
+    }
+
+    @Override
+    public void onCompensateSucc(SagaContext context) {
+
+    }
+
+    @Override
+    public void onOvertime(SagaContext context) {
+
+    }
+
+    @Override
+    public void onException(SagaContext context, Throwable t) {
+
+    }
+
+    @Override
     public void onExeFailToComp(SagaContext context) {
 
     }
@@ -47,16 +67,6 @@ public class EmptyListener implements SagaListener {
 
     @Override
     public void afterCompensate(SagaContext context, SagaTx tx, SagaTxStatus status) {
-
-    }
-
-    @Override
-    public void onOvertime(SagaContext context) {
-
-    }
-
-    @Override
-    public void onException(SagaContext context, Throwable t) {
 
     }
 }

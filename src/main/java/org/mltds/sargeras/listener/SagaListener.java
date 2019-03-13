@@ -24,6 +24,16 @@ public interface SagaListener {
     void onRestart(SagaContext context);
 
     /**
+     * 当全部正向执行后
+     */
+    void onExecuteSucc(SagaContext context);
+
+    /**
+     * 当需要补偿的，全部补偿成功后
+     */
+    void onCompensateSucc(SagaContext context);
+
+    /**
      * 当超时后，不再跟踪。
      */
     void onOvertime(SagaContext context);

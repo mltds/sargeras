@@ -27,6 +27,16 @@ public class LogListener implements SagaListener {
     }
 
     @Override
+    public void onExecuteSucc(SagaContext context) {
+        logger.info("Saga 执行成功. KeyName:{}, ContextId:{},BizId:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId());
+    }
+
+    @Override
+    public void onCompensateSucc(SagaContext context) {
+        logger.info("Saga 补偿成功. KeyName:{}, ContextId:{},BizId:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId());
+    }
+
+    @Override
     public void onExeFailToComp(SagaContext context) {
         logger.warn("Saga 执行失败，开始补偿. KeyName:{}, ContextId:{},BizId:{},PreExecutedTx:{}", context.getSaga().getKeyName(), context.getId(), context.getBizId(),
                 context.getPreExecutedTx().getSimpleName());
