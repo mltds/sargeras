@@ -9,20 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sargeras-example</artifactId>
-    <packaging>jar</packaging>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.mltds.sargeras</groupId>
-            <artifactId>sargeras-worker</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.mltds.sargeras</groupId>
-            <artifactId>sargeras-worker-spring</artifactId>
-        </dependency>
-
-    </dependencies>
+    <artifactId>sargeras-server</artifactId>
 
 
 </project>

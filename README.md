@@ -26,7 +26,7 @@
       repository.rdbms.datasource.username=sunyi  
       repository.rdbms.datasource.password=sunyi
  1. 使用 SagaBuilder 配置一个 Saga 流程，使用 SagaLauncher 启动 Saga 框架。（参见 Example 模块的 Example1）
-     ```java
+     ```
     SagaBuilder.newBuilder(appName, bizName)// 定义一个业务
             .addTx(new BookCar())// 订汽车
             .addTx(new BookAir())// 订机票
@@ -39,7 +39,7 @@
     ```
  1. 使用 Saga.start() 启动  一个Saga流程，传入对应的 BizId 和 BizParam。（参见 Example 模块的 Example1）
  
-    ```java
+    ```
     // 业务订单ID，唯一且必须先生成。
     String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
 

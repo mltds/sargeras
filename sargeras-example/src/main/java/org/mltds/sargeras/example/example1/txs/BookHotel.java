@@ -37,7 +37,7 @@ public class BookHotel implements SagaTx {
             result.errorMessage = "预定酒店失败，没有房间了，别去了~~~";
 
             context.saveBizResult(result);
-            return SagaTxStatus.EXE_FAIL_TO_COMP;
+            return SagaTxStatus.FAILURE;
         }
 
     }

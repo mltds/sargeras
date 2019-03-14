@@ -10,9 +10,15 @@
     <version>0.2.0-SNAPSHOT</version>
 
     <modules>
-        <module>sargeras</module>
-        <module>sargeras-spring</module>
+        <module>sargeras-common</module>
+
+        <module>sargeras-worker</module>
+        <module>sargeras-worker-spring</module>
+        <module>sargeras-server</module>
+
         <module>sargeras-example</module>
+        <module>sargeras-test</module>
+
     </modules>
 
 
@@ -35,12 +41,17 @@
             <!--sargeras-->
             <dependency>
                 <groupId>org.mltds.sargeras</groupId>
-                <artifactId>sargeras</artifactId>
+                <artifactId>sargeras-worker</artifactId>
                 <version>0.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.mltds.sargeras</groupId>
-                <artifactId>sargeras-spring</artifactId>
+                <artifactId>sargeras-worker-spring</artifactId>
+                <version>0.2.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mltds.sargeras</groupId>
+                <artifactId>sargeras-example</artifactId>
                 <version>0.2.0-SNAPSHOT</version>
             </dependency>
 
