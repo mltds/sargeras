@@ -1,36 +1,37 @@
-package org.mltds.sargeras.test.example.example1;
-
-import java.util.HashMap;
-import java.util.Map;
+package org.mltds.sargeras.test.example.example1.txs;
 
 import org.mltds.sargeras.api.SagaContext;
 import org.mltds.sargeras.api.SagaTx;
 import org.mltds.sargeras.api.SagaTxStatus;
+import org.mltds.sargeras.test.example.example1.FamilyMember;
+import org.mltds.sargeras.test.example.example1.Result;
 
 /**
  * @author sunyi.
  */
-public class NotifyFamily implements SagaTx {
+public class Summary implements SagaTx {
     @Override
     public SagaTxStatus execute(SagaContext context) {
 
-        String travelDestination = context.getBizId();
+        String bizId = context.getBizId();
         FamilyMember member = context.getBizParam(FamilyMember.class);
-
         String carOrderNo = context.getPersistentInfo(BookCar.CAR_ORDER_NO, String.class);
         String airOrderNo = context.getPersistentInfo(BookAir.AIR_ORDER_NO, String.class);
         String hotelOrderNo = context.getPersistentInfo(BookHotel.HOTEL_ORDER_NO, String.class);
 
-        Map<String, Object> bookInfo = new HashMap<>();
+        Result result = new Result();
 
-        bookInfo.put("BizId", travelDestination);
-        bookInfo.put("Member", member);
-        bookInfo.put("CarOrderNo", carOrderNo);
-        bookInfo.put("AirOrderNo", airOrderNo);
-        bookInfo.put("HotelOrderNo", hotelOrderNo);
+        result.success = true;
 
-        // 将所有的预定信息汇总起来，返回结果（告诉家里人）
-        context.setBizResult(bookInfo);
+        result.bizId = bizId;
+        result.member = member;
+
+        result.carOrderNo = carOrderNo;
+        result.aireOrderNo = airOrderNo;
+        result.hotelOrderNo = hotelOrderNo;
+
+        // 将所有的预定信息汇总起来，返回结果
+        context.setBizResult(result);
 
         return SagaTxStatus.SUCCESS;
     }

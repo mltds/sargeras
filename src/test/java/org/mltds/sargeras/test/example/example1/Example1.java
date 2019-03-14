@@ -1,12 +1,15 @@
 package org.mltds.sargeras.test.example.example1;
 
-import java.util.Map;
 import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mltds.sargeras.api.*;
 import org.mltds.sargeras.listener.LogListener;
+import org.mltds.sargeras.test.example.example1.txs.BookAir;
+import org.mltds.sargeras.test.example.example1.txs.BookCar;
+import org.mltds.sargeras.test.example.example1.txs.BookHotel;
+import org.mltds.sargeras.test.example.example1.txs.Summary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +36,7 @@ public class Example1 {
                 .addTx(new BookCar())// 订汽车
                 .addTx(new BookAir())// 订机票
                 .addTx(new BookHotel(true))// 订酒店，false为强制失败
-                .addTx(new NotifyFamily()) // 告诉家人
+                .addTx(new Summary()) // 汇总结果
                 .addListener(new LogListener()) // 增加一些log输出方便跟踪
                 .build();
 
@@ -57,19 +60,11 @@ public class Example1 {
         Saga saga = SagaApplication.getSaga(appName, bizName); // 任何地方都可以获取到这个Saga
 
         // 执行业务
-        SagaResult result = saga.start(bizId, member);
+        SagaResult sagaResult = saga.start(bizId, member);
+        Result result = sagaResult.getBizResult(Result.class);
 
-        SagaStatus status = result.getStatus(); // 获取任务执行状态
+        logger.info(JSON.toJSONString(result, true));
 
-        if (SagaStatus.EXECUTE_SUCC.equals(status)) {
-            Map bizResult = result.getBizResult(Map.class);
-            logger.info("预定成功，相关信息为：" + JSON.toJSONString(bizResult, true));
-        } else if (SagaStatus.COMPENSATE_SUCC.equals(status) || SagaStatus.COMPENSATE_FAIL.equals(status)) {
-            String bizResult = result.getBizResult(String.class);
-            logger.info("预定失败:" + bizResult);
-        } else {
-            logger.info("预定中，请稍后");
-        }
     }
 
     @Test

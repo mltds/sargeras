@@ -31,16 +31,16 @@
             .addTx(new BookCar())// 订汽车
             .addTx(new BookAir())// 订机票
             .addTx(new BookHotel(true))// 订酒店，false为强制失败
-            .addTx(new NotifyFamily()) // 告诉家人
+            .addTx(new Summary()) // 汇总结果
             .addListener(new LogListener()) // 增加一些log输出方便跟踪
             .build();
-    
+
     SagaLauncher.launch(); // 需要先 Build Saga
     ```
  1. 使用 Saga.start() 启动  一个Saga流程，传入对应的 BizId 和 BizParam。（参见 test 模块的 Example1）
  
     ```java
-    // 业务订单ID，唯一且必须先由业务系统生成并落库，这里举个栗子。
+    // 业务订单ID，唯一且必须先生成。
     String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
 
     // 家人信息
@@ -54,10 +54,10 @@
     Saga saga = SagaApplication.getSaga(appName, bizName); // 任何地方都可以获取到这个Saga
 
     // 执行业务
-    SagaResult result = saga.start(bizId, member);
+    SagaResult sagaResult = saga.start(bizId, member);
+    Result result = sagaResult.getBizResult(Result.class);
 
-    SagaStatus status = result.getStatus(); // 获取任务执行状态
-    Object bizResult = result.getBizResult(Object.class); // 获取任务执行结果
+    logger.info(JSON.toJSONString(result, true));
 
     ```
  
@@ -78,7 +78,7 @@
 * 预定汽车（BookCar）
 * 预定飞机（BookAir）
 * 预定酒店（BookHotel）
-* 结果告知（NotifyFamily）
+* 汇总结果（Summary）
 
 这4个小事务，都是TX（Transaction），而由这4个TX组成了一个Saga。每一次出行Saga.start()，都是一笔业务（LLT）。这种类似的场景在生活中很常见也比较简单，但是在系统实现层面上会碰到一个很经典的分布式事物问题。  
 假设我预定汽车成功，之后预定飞机也成功了，但预定酒店失败了，那么我需要取消之前预定的汽车和飞机。而在这个过程中，假设这些操作都涉及到远程通讯，都有可能因为网络抖动、服务重启等情况所影响，所以需要一个"东西"能够帮助你确保在碰到各种意外情况后，还能够将所有 TX 执行完或补偿需要补偿的TX。（PS：这里的补偿Compensate是回滚/回退的意思，而非重试）。  
