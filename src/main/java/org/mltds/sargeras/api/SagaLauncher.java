@@ -94,7 +94,7 @@ public class SagaLauncher {
 
         int nThreads = Integer.valueOf(SagaConfig.getProperty(SagaConfig.POLLRETRY_NTHREADS));
 
-        ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+        final ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
 
         for (int i = 0; i < nThreads; i++) {
             executorService.submit(new PollRetryThread(), new ThreadFactory() {

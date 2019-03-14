@@ -61,7 +61,12 @@ public class MybatisDataSourceFactory implements DataSourceFactory {
 
                 dataSource.init();
 
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> dataSource.close()));
+                Runtime.getRuntime().addShutdownHook(new Thread() {
+                    @Override
+                    public void run() {
+                        dataSource.close();
+                    }
+                });
 
             } catch (SQLException e) {
                 throw new SagaException("Saga RdbmsRepository 初始化数据源失败", e);

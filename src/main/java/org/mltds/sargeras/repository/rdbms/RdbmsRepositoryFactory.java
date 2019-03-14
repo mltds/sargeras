@@ -70,7 +70,7 @@ public class RdbmsRepositoryFactory implements RepositoryFactory {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T createMapperProxy(Class<T> mapperCls) {
+    private <T> T createMapperProxy(final Class<T> mapperCls) {
 
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         Object proxy = Proxy.newProxyInstance(classLoader, new Class[] { mapperCls }, new InvocationHandler() {
@@ -109,7 +109,7 @@ public class RdbmsRepositoryFactory implements RepositoryFactory {
 
     }
 
-    private Repository createRepositoryProxy(RdbmsRepository repository) {
+    private Repository createRepositoryProxy(final RdbmsRepository repository) {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         Object proxy = Proxy.newProxyInstance(classLoader, new Class[] { Repository.class }, new InvocationHandler() {
             @Override
