@@ -16,7 +16,7 @@
     <dependency>
         <groupId>org.mltds.sargeras</groupId>
         <artifactId>sargeras</artifactId>
-        <version>0.1.1-SNAPSHOT</version>
+        <version>{sargeras.version}</version>
     </dependency>
     ```
  
@@ -161,6 +161,10 @@ Sargeras 的启动器，正常流程是先 Build 需要的 Saga，然后使用�
 
 
 ## 版本记录
+
+###### 0.2.0-SNAPSHOT
+* 修改工程结构，将 parent 作为顶层，管理属性、依赖等
+* 将 sargeras 模块作为核心，另外创建了 Example 和 Spring 两个模块
 
 ###### 0.1.1-SNAPSHOT
 * 支持轮询重试
