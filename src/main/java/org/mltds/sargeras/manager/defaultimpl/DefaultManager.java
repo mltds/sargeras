@@ -5,7 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.mltds.sargeras.api.*;
-import org.mltds.sargeras.exception.LockFailException;
+import org.mltds.sargeras.exception.SagaContextLockFailException;
 import org.mltds.sargeras.listener.SagaListener;
 import org.mltds.sargeras.manager.Manager;
 import org.mltds.sargeras.repository.Repository;
@@ -18,7 +18,7 @@ public class DefaultManager implements Manager {
     private Repository repository = SagaApplication.getRepository();
 
     @Override
-    public SagaResult start(Saga saga, String bizId, Object bizParam) throws LockFailException {
+    public SagaResult start(Saga saga, String bizId, Object bizParam) throws SagaContextLockFailException {
         // Build Saga Context
         SagaContext context = new SagaContext(saga);
         context.setBizId(bizId);
@@ -41,7 +41,7 @@ public class DefaultManager implements Manager {
     }
 
     @Override
-    public SagaResult restart(Saga saga, String bizId) throws LockFailException {
+    public SagaResult restart(Saga saga, String bizId) throws SagaContextLockFailException {
         SagaContext context = repository.loadContext(saga.getAppName(), saga.getBizName(), bizId);
         // Run
         return run(context);
@@ -77,7 +77,7 @@ public class DefaultManager implements Manager {
      * 假如 TX2.compensate 返回 COMP_FAIL_TO_FINAL，那么整个流程中止，需要人工介入。
      *
      */
-    protected SagaResult run(SagaContext context) throws LockFailException {
+    protected SagaResult run(SagaContext context) throws SagaContextLockFailException {
         List<SagaTx> txList = context.getSaga().getTxList();
         List<SagaListener> listenerList = context.getSaga().getListenerList();
 
@@ -88,7 +88,7 @@ public class DefaultManager implements Manager {
 
         boolean lock = context.lock();
         if (!lock) {
-            throw new LockFailException(context.getId(), context.getTriggerId());
+            throw new SagaContextLockFailException(context.getId(), context.getTriggerId());
         }
 
         try {
@@ -104,9 +104,11 @@ public class DefaultManager implements Manager {
                 listenerChain.onRestart(context);
             }
 
+            SagaTxStatus txStatus = null;
+
             if (SagaStatus.EXECUTING.equals(status)) {
 
-                SagaTxStatus txStatus = txChain.execute(context);
+                txStatus = txChain.execute(context);
 
                 if (SagaTxStatus.SUCCESS.equals(txStatus)) {
                     status = SagaStatus.EXECUTE_SUCC;
@@ -129,7 +131,7 @@ public class DefaultManager implements Manager {
 
             if (SagaStatus.COMPENSATING.equals(status)) {
 
-                SagaTxStatus txStatus = txChain.compensate(context);
+                txStatus = txChain.compensate(context);
 
                 if (SagaTxStatus.SUCCESS.equals(txStatus)) {
                     status = SagaStatus.COMPENSATE_SUCC;
@@ -149,6 +151,7 @@ public class DefaultManager implements Manager {
                     listenerChain.onComFailToFinal(context);
                 }
             }
+
         } finally {
             context.unlock();
         }

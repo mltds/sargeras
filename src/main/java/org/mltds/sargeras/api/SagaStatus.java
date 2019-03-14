@@ -36,8 +36,14 @@ public enum SagaStatus {
     COMPENSATE_FAIL,
 
     /**
-     * 一直处理中，直到超过了既定的 biz_timeout，最终结果未知，不再跟进。
+     * 一直处理中，直到超过了既定的 biz_timeout，最终结果未知，不再继续轮询重试。
      */
-    OVERTIME;
+    OVERTIME,
+
+    /**
+     * 不兼容的，在代码变更后，无法处理某个执行中的流程，会标记为不兼容状态，不再继续轮询重试。<br/>
+     * 暂时没有使用，因为不兼容的话就是在 Restart 时找不到起始点，会让线程空跑一次，也不是大问题。
+     */
+    INCOMPATIBLE;
 
 }

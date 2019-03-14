@@ -3,7 +3,7 @@ package org.mltds.sargeras.manager;
 import org.mltds.sargeras.api.Saga;
 import org.mltds.sargeras.api.SagaResult;
 import org.mltds.sargeras.api.spi.SagaBean;
-import org.mltds.sargeras.exception.LockFailException;
+import org.mltds.sargeras.exception.SagaContextLockFailException;
 
 /**
  * 这个服务类是给Saga内部使用的，不建议外部系统直接使用。
@@ -20,12 +20,12 @@ public interface Manager extends SagaBean {
      * @param bizParam 业务参数
      * @return Saga的状态和执行结果
      */
-    SagaResult start(Saga saga, String bizId, Object bizParam) throws LockFailException;
+    SagaResult start(Saga saga, String bizId, Object bizParam) throws SagaContextLockFailException;
 
     /**
      * 手动启动一个执行中的Saga
      */
-    SagaResult restart(Saga saga, String bizId) throws LockFailException;
+    SagaResult restart(Saga saga, String bizId) throws SagaContextLockFailException;
 
     /**
      * 轮询重试一个执行中的Saga，如果获取锁失败或早于下一次触发时间（nextTriggerTime），则不会执行。

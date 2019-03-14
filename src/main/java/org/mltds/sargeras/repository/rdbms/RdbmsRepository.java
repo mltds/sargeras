@@ -7,6 +7,7 @@ import java.util.List;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mltds.sargeras.api.*;
 import org.mltds.sargeras.exception.SagaException;
+import org.mltds.sargeras.exception.SagaNotFoundException;
 import org.mltds.sargeras.repository.Repository;
 import org.mltds.sargeras.repository.rdbms.mapper.ContextInfoMapper;
 import org.mltds.sargeras.repository.rdbms.mapper.ContextLockMapper;
@@ -36,7 +37,7 @@ public class RdbmsRepository implements Repository {
 
     @Override
     @Transaction
-    public long saveContextAndLock(SagaContext context) {
+    public void saveContextAndLock(SagaContext context) {
 
         ContextDO contextDO = sagaContextToContextDO(context);
         contextDO.setCreateTime(new Date());
@@ -46,7 +47,6 @@ public class RdbmsRepository implements Repository {
 
         context.lock();
 
-        return contextDO.getId();
     }
 
     @Override
@@ -62,7 +62,7 @@ public class RdbmsRepository implements Repository {
 
         Saga saga = SagaApplication.getSaga(appName, bizName);
         if (saga == null) {
-            throw new SagaException("查询 Saga 失败，AppName：" + appName + ", BizName: " + bizName);
+            throw new SagaNotFoundException(appName, bizName);
         }
 
         try {
@@ -83,7 +83,7 @@ public class RdbmsRepository implements Repository {
 
         Saga saga = SagaApplication.getSaga(appName, bizName);
         if (saga == null) {
-            throw new SagaException("查询 Saga 失败，AppName：" + appName + ", BizName: " + bizName);
+            throw new SagaNotFoundException(appName, bizName);
         }
 
         try {
