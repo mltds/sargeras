@@ -1,4 +1,4 @@
-package org.mltds.sargeras.test.example.example1;
+package org.mltds.sargeras.example.example1;
 
 /**
  * @author sunyi.

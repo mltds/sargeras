@@ -1,15 +1,13 @@
-package org.mltds.sargeras.test.example.example1;
+package org.mltds.sargeras.example.example1;
 
 import java.util.UUID;
 
-import org.junit.Before;
-import org.junit.Test;
 import org.mltds.sargeras.api.*;
+import org.mltds.sargeras.example.example1.txs.BookAir;
+import org.mltds.sargeras.example.example1.txs.BookCar;
+import org.mltds.sargeras.example.example1.txs.BookHotel;
+import org.mltds.sargeras.example.example1.txs.Summary;
 import org.mltds.sargeras.listener.LogListener;
-import org.mltds.sargeras.test.example.example1.txs.BookAir;
-import org.mltds.sargeras.test.example.example1.txs.BookCar;
-import org.mltds.sargeras.test.example.example1.txs.BookHotel;
-import org.mltds.sargeras.test.example.example1.txs.Summary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +15,7 @@ import com.alibaba.fastjson.JSON;
 
 /**
  * 一个正向执行/逆向补偿的例子<br/>
- * 比如家人要去旅游，帮家里人订票的例子，有四个TX：订汽车 -> 订机票 -> 订酒店 -> 告诉家人。<br/>
+ * 比如家人要去旅游，帮家里人订票的例子，有四个TX：订汽车 -> 订机票 -> 订酒店 -> 汇总结果。<br/>
  * PS：可以通过修改 {@link BookHotel} 的构造方法入参，来控制流程的成功失败。
  *
  * @author sunyi
@@ -29,8 +27,14 @@ public class Example1 {
     public static final String appName = "Travel";
     public static final String bizName = "LongTrip";
 
-    @Before
-    public void init() {
+    public static void main(String[] args) {
+
+        init();
+
+        service();
+    }
+
+    public static void init() {
 
         SagaBuilder.newBuilder(appName, bizName)// 定义一个业务
                 .addTx(new BookCar())// 订汽车
@@ -43,8 +47,7 @@ public class Example1 {
         SagaLauncher.launch(); // 需要先 Build Saga
     }
 
-    @Test
-    public void test() {
+    public static void service() {
 
         // 业务订单ID，唯一且必须先生成。
         String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
@@ -67,21 +70,19 @@ public class Example1 {
 
     }
 
-    @Test
-    public void testTimeConsuming() {
+    public static void testTimeConsuming() {
         // 测试耗时情况
         int count = 100;
         long t1 = System.currentTimeMillis();
         for (int i = 0; i < count; i++) {
-            test();
+            service();
         }
         long t2 = System.currentTimeMillis();
         logger.info("运行{}次，总计耗时{}毫秒，平均耗时{}毫秒。", count, t2 - t1, (t2 - t1) / count);
 
     }
 
-    @Test
-    public void testRollretry() throws InterruptedException {
+    public static void testRollretry() throws InterruptedException {
 
         Thread.sleep(1000 * 60 * 60);
 

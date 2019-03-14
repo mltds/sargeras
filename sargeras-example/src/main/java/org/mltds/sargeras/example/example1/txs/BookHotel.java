@@ -1,10 +1,10 @@
-package org.mltds.sargeras.test.example.example1.txs;
+package org.mltds.sargeras.example.example1.txs;
 
 import org.mltds.sargeras.api.SagaContext;
 import org.mltds.sargeras.api.SagaTx;
 import org.mltds.sargeras.api.SagaTxStatus;
-import org.mltds.sargeras.test.example.example1.FamilyMember;
-import org.mltds.sargeras.test.example.example1.Result;
+import org.mltds.sargeras.example.example1.FamilyMember;
+import org.mltds.sargeras.example.example1.Result;
 
 public class BookHotel implements SagaTx {
     public static final String HOTEL_ORDER_NO = "HOTEL_ORDER_NO";
