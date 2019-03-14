@@ -86,11 +86,56 @@ Saga 就是这样的一个框架，用来帮助你解决一个长链路流程的
 
 #### 核心组件
 
-#### 
+* Saga  
+代表一种LLT、一种业务流程，每执行一次代表一笔业务。
+
+* SagaContext  
+代表一笔业务，在 TX 执行或补偿过程中，可以从SagaContext存储/获取这笔业务相关信息。
+
+* TX  
+是 Saga 中的一个业务节点，多个 TX 组成一个Saga，当然，TX 是可以复用的。每个 TX 都有两个方法，执行（execute）和补偿（Compensate），方法的返回类型是 SagaTxStatus。
+
+* SagaTxStatus  
+是控制流程的关键因素，Sargeras框架会根据返回的 SagaTxStatus 决定流程的去向，具体有以下几种状态
+    * SUCCESS：成功，将会进行下一个事务节点的执行/补偿
+    * PROCESSING：处理中，流程挂起，计算下一次期望重试的时间点
+    * EXE_FAIL_TO_COMP：执行失败，将进入补偿流程
+    * COMP_FAIL_TO_FINAL：补偿失败，流程终止
+    
+* SagaStatus  
+是这个笔业整体状态的体现，具体有以下几种状态
+    * INIT：处理中，初始化状态
+    * EXECUTING：处理中，正向执行中
+    * COMPENSATING：处理中，逆向补偿中
+    * EXECUTE_SUCC：所有 TX 都执行成功，Saga 最终执行成功
+    * COMPENSATE_SUCC：所有需要补偿的 TX 都补偿成功，Saga 最终补偿成功。
+    * COMPENSATE_FAIL：某个需要补偿的 TX 补偿失败，Saga 最终失败。
+    * OVERTIME：流程一直处理中直到超过了既定的 biz_timeout，最终结果未知，不再继续轮询重试。
+    * INCOMPATIBLE：不兼容，暂时没有使用
+
+* SagaBuilder  
+用于构建一个 Saga，构建Saga之后就可以不用管它了
+
+* SagaApplication  
+Sargeras 的应用上下文，用于获取 Saga、SPI Bean 等
+
+* SagaLauncher  
+Sargeras 的启动器，正常流程是先 Build 需要的 Saga，然后使用启动器启动 Sargeras
 
 
+* SagaBean/SagaBeanFactory  
+是 Sargeras 的 SPI ，共有几种类型，并提供了默认实现
+    * Manager 用于启动/重新启动等一个 Saga
+    * Repository 用于存储持久化 SagaContext 相关信息
+    * Serialize 持久化的时候，有些大的信息需要序列化后再存储
 
-## 其他
+* SagaListener  
+用于监听 Saga 的执行情况，在关键的节点会收到通知，里面有很多通知方法，具体可以到类里面查看，提供了2个默认实现
+    * EmptyListener 因为方法太多了，可以用这个来过滤掉不需要的方法
+    * LogListener 所有事件都会记录到 LOG 中，简单实用
+
+
+## 一些七七八八的
 
 
 #### 没想清楚的地方
