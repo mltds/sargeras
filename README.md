@@ -1,4 +1,4 @@
-# sargeras
+# SARGERAS
 
 
 ## 简介
@@ -97,10 +97,9 @@ Saga 就是这样的一个框架，用来帮助你解决一个长链路流程的
 
 * SagaTxStatus  
 是控制流程的关键因素，Sargeras框架会根据返回的 SagaTxStatus 决定流程的去向，具体有以下几种状态
-    * SUCCESS：成功，将会进行下一个事务节点的执行/补偿
-    * PROCESSING：处理中，流程挂起，计算下一次期望重试的时间点
-    * EXE_FAIL_TO_COMP：执行失败，将进入补偿流程
-    * COMP_FAIL_TO_FINAL：补偿失败，流程终止
+    * SUCCESS：成功，执行或补偿下一个 TX
+    * PROCESSING：处理中，流程挂起，计算下一次期望重试的时间点，等待轮询重试或手动触发。
+    * FAILURE：失败，如果是执行（Execute）失败，则转为补偿（Compensate）流程；如果是补偿失败，则流程终止。
     
 * SagaStatus  
 是这个笔业整体状态的体现，具体有以下几种状态

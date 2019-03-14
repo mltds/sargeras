@@ -44,7 +44,7 @@ public class Example1 {
                 .addListener(new LogListener()) // 增加一些log输出方便跟踪
                 .build();
 
-        SagaLauncher.launch(); // 需要先 Build Saga
+        SagaLauncher.launch(); // 需要先 Build Saga，否则在启动轮询重试线程后，会找不到 Saga
     }
 
     public static void service() {
