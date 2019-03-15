@@ -1,7 +1,7 @@
 <configuration>
 
     <conversionRule conversionWord="fl"
-                    converterClass="org.mltds.sargeras.utils.FileLineConverter" />
+                    converterClass="org.mltds.sargeras.common.utils.FileLineConverter"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -9,9 +9,11 @@
         </encoder>
     </appender>
 
-    <!--<logger name="org.mltds.sargeras" level="DEBUG" additivity="false">-->
-        <!--<appender-ref ref="STDOUT"/>-->
-    <!--</logger>-->
+    <!--
+    <logger name="org.mltds.sargeras" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    -->
 
     <logger name="saga-listener-logger" level="INFO" additivity="false">
         <appender-ref ref="STDOUT"/>

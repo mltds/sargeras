@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mltds.sargeras.server.dal.mapper.ContextInfoMapper">
+
+    <resultMap id="ContextInfoRM" type="ContextInfo">
+        <id property="id" column="id"/>
+        <result property="contextId" column="context_id"/>
+        <result property="key" column="key"/>
+        <result property="info" column="info"/>
+        <result property="createTime" column="create_time"/>
+        <result property="modifyTime" column="modify_time"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="ContextInfo">
+        <selectKey resultType="java.lang.Long" order="AFTER" keyProperty="id">
+            SELECT LAST_INSERT_ID() AS id
+        </selectKey>
+        INSERT INTO
+        saga_context_info
+        (context_id, `key`, info, create_time, modify_time)
+        VALUES
+        (#{contextId},#{key},#{info},#{createTime},#{modifyTime})
+    </insert>
+
+    <update id="updateById" parameterType="ContextInfo">
+        UPDATE saga_context_info SET info = #{info} , modify_time = #{modifyTime}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateByKey" parameterType="ContextInfo">
+        UPDATE saga_context_info SET info = #{info} , modify_time = #{modifyTime}
+        WHERE context_id = #{contextId} and `key` = #{key}
+    </update>
+
+    <select id="selectByKey" resultMap="ContextInfoRM">
+        SELECT * FROM saga_context_info
+        WHERE context_id = #{contextId} and `key` = #{key}
+    </select>
+
+</mapper>

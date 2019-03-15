@@ -1,8 +1,8 @@
 package org.mltds.sargeras.example.example1.txs;
 
-import org.mltds.sargeras.api.SagaContext;
-import org.mltds.sargeras.api.SagaTx;
-import org.mltds.sargeras.api.SagaTxStatus;
+import org.mltds.sargeras.worker.api.SagaContext;
+import org.mltds.sargeras.worker.api.SagaTx;
+import org.mltds.sargeras.common.core.SagaTxStatus;
 
 public class BookAir implements SagaTx {
     public static final String AIR_ORDER_NO = "AIR_ORDER_NO";
@@ -11,7 +11,7 @@ public class BookAir implements SagaTx {
     public SagaTxStatus execute(SagaContext context) {
         // 预约飞机成功，对方返回一个飞机预约单号
         String bookAirOrderNo = "air789";
-        context.savePersistentInfo(AIR_ORDER_NO, bookAirOrderNo);
+        context.saveInfo(AIR_ORDER_NO, bookAirOrderNo);
         return SagaTxStatus.SUCCESS;
     }
 

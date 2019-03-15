@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <settings>
+        <setting name="logImpl" value="SLF4J"/>
+    </settings>
+
+    <typeAliases>
+        <typeAlias alias="Context" type="org.mltds.sargeras.server.dal.model.ContextDO"/>
+        <typeAlias alias="ContextInfo" type="org.mltds.sargeras.server.dal.model.ContextInfoDO"/>
+        <typeAlias alias="ContextLock" type="org.mltds.sargeras.server.dal.model.ContextLockDO"/>
+    </typeAliases>
+
+    <environments default="default">
+        <environment id="default">
+            <transactionManager type="JDBC"/>
+            <dataSource type="org.mltds.sargeras.server.biz.repository.rdbms.MybatisDataSourceFactory"/>
+        </environment>
+    </environments>
+
+    <mappers>
+        <mapper resource="sargeras/mapper/ContextMapper.xml"/>
+        <mapper resource="sargeras/mapper/ContextInfoMapper.xml"/>
+        <mapper resource="sargeras/mapper/ContextLockMapper.xml"/>
+    </mappers>
+
+</configuration>

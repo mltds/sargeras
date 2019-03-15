@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mltds.sargeras.server.dal.mapper.ContextLockMapper">
+
+    <resultMap id="ContextLockRM" type="ContextLock">
+        <id property="id" column="id"/>
+        <result property="contextId" column="context_id"/>
+        <result property="reqId" column="req_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="expireTime" column="expire_time"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="ContextLock">
+        INSERT INTO saga_context_lock
+        (context_id, req_id, create_time, expire_time)
+        VALUES
+        (#{contextId},#{reqId},#{createTime},#{expireTime})
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM saga_context_lock WHERE context_id = #{contextId} and req_id = #{reqId}
+    </delete>
+
+    <select id="select" resultMap="ContextLockRM">
+        SELECT * FROM saga_context_lock WHERE context_id = #{contextId}
+    </select>
+
+
+
+</mapper>

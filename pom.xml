@@ -7,18 +7,17 @@
     <groupId>org.mltds.sargeras</groupId>
     <artifactId>sargeras-parent</artifactId>
     <packaging>pom</packaging>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 
     <modules>
         <module>sargeras-common</module>
 
         <module>sargeras-worker</module>
         <module>sargeras-worker-spring</module>
+
         <module>sargeras-server</module>
 
         <module>sargeras-example</module>
-        <module>sargeras-test</module>
-
     </modules>
 
 
@@ -41,20 +40,46 @@
             <!--sargeras-->
             <dependency>
                 <groupId>org.mltds.sargeras</groupId>
+                <artifactId>sargeras-common</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mltds.sargeras</groupId>
                 <artifactId>sargeras-worker</artifactId>
-                <version>0.2.0-SNAPSHOT</version>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.mltds.sargeras</groupId>
                 <artifactId>sargeras-worker-spring</artifactId>
-                <version>0.2.0-SNAPSHOT</version>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <!--sargeras-server-->
+            <dependency>
+                <groupId>org.mltds.sargeras</groupId>
+                <artifactId>sargeras-server</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mltds.sargeras</groupId>
+                <artifactId>sargeras-server-facade</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mltds.sargeras</groupId>
+                <artifactId>sargeras-server-dal</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mltds.sargeras</groupId>
+                <artifactId>sargeras-server-service</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.mltds.sargeras</groupId>
                 <artifactId>sargeras-example</artifactId>
-                <version>0.2.0-SNAPSHOT</version>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
-
+            <!--sargeras-end-->
 
             <!--test-->
             <dependency>
@@ -76,32 +101,43 @@
                 <version>1.2.3</version>
             </dependency>
 
-            <!-- serialize by json -->
+            <!-- json -->
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>1.2.56</version>
             </dependency>
 
-            <!-- repository by RDBMS & MyBatis-->
+            <!--commons-->
             <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>druid</artifactId>
-                <version>1.1.13</version>
-            </dependency>
-            <!--MyBatis3.5 及以上只支持 JDK8 了-->
-            <dependency>
-                <groupId>org.mybatis</groupId>
-                <artifactId>mybatis</artifactId>
-                <version>3.4.6</version>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.8.1</version>
             </dependency>
             <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>5.1.47</version>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.6</version>
             </dependency>
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.9.3</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.esotericsoftware</groupId>
+                <artifactId>reflectasm</artifactId>
+                <version>1.11.8</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.5.7</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
-
-
 </project>

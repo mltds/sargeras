@@ -1,8 +1,8 @@
 package org.mltds.sargeras.example.example1.txs;
 
-import org.mltds.sargeras.api.SagaContext;
-import org.mltds.sargeras.api.SagaTx;
-import org.mltds.sargeras.api.SagaTxStatus;
+import org.mltds.sargeras.worker.api.SagaContext;
+import org.mltds.sargeras.worker.api.SagaTx;
+import org.mltds.sargeras.common.core.SagaTxStatus;
 
 public class BookCar implements SagaTx {
 
@@ -12,7 +12,7 @@ public class BookCar implements SagaTx {
     public SagaTxStatus execute(SagaContext context) {
         // 预约汽车成功，对方给了一个汽车预约单号
         String bookCarOrderNo = "car123";
-        context.savePersistentInfo(CAR_ORDER_NO, bookCarOrderNo);
+        context.saveInfo(CAR_ORDER_NO, bookCarOrderNo);
         return SagaTxStatus.SUCCESS;
     }
 

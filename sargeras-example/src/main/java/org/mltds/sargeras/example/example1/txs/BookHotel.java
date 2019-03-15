@@ -1,8 +1,8 @@
 package org.mltds.sargeras.example.example1.txs;
 
-import org.mltds.sargeras.api.SagaContext;
-import org.mltds.sargeras.api.SagaTx;
-import org.mltds.sargeras.api.SagaTxStatus;
+import org.mltds.sargeras.worker.api.SagaContext;
+import org.mltds.sargeras.worker.api.SagaTx;
+import org.mltds.sargeras.common.core.SagaTxStatus;
 import org.mltds.sargeras.example.example1.FamilyMember;
 import org.mltds.sargeras.example.example1.Result;
 
@@ -28,7 +28,7 @@ public class BookHotel implements SagaTx {
         if (bookSucc) {
             // 预约酒店成功，对方返回一个酒店预约单号
             String bookHotelOrderNo = "hotel456";
-            context.savePersistentInfo(HOTEL_ORDER_NO, bookHotelOrderNo);
+            context.saveInfo(HOTEL_ORDER_NO, bookHotelOrderNo);
             return SagaTxStatus.SUCCESS;
         } else {
 
