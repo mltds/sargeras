@@ -71,12 +71,12 @@ public interface Manager extends SagaBean {
     /**
      * 获取锁
      */
-    boolean lock(long id, String reqId, int timeoutSec);
+    boolean lock(long id, String triggerId, int timeoutSec);
 
     /**
      * 释放锁
      */
-    boolean unlock(long id, String reqId);
+    boolean unlock(long id, String triggerId);
 
     /**
      * 查询出需要轮询重试的 Context Id List

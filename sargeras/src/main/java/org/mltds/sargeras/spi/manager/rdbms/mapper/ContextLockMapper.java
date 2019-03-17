@@ -10,7 +10,7 @@ public interface ContextLockMapper {
 
     int insert(ContextLockDO lockDO);
 
-    int delete(@Param("contextId") Long contextId, @Param("reqId") String reqId);
+    int delete(@Param("contextId") Long contextId, @Param("triggerId") String triggerId);
 
     ContextLockDO select(@Param("contextId") Long contextId);
 

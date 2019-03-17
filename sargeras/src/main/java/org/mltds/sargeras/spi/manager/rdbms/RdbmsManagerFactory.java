@@ -42,21 +42,21 @@ public class RdbmsManagerFactory implements ManagerFactory {
             }
 
             try {
-                RdbmsManager repository = new RdbmsManager();
+                RdbmsManager manager = new RdbmsManager();
 
                 InputStream inputStream = Resources.getResourceAsStream(MYBATIS_RESOURCE);
                 sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
 
                 ContextMapper contextMapper = createMapperProxy(ContextMapper.class);
-                repository.setContextMapper(contextMapper);
+                manager.setContextMapper(contextMapper);
 
                 ContextInfoMapper contextInfoMapper = createMapperProxy(ContextInfoMapper.class);
-                repository.setContextInfoMapper(contextInfoMapper);
+                manager.setContextInfoMapper(contextInfoMapper);
 
                 ContextLockMapper contextLockMapper = createMapperProxy(ContextLockMapper.class);
-                repository.setContextLockMapper(contextLockMapper);
+                manager.setContextLockMapper(contextLockMapper);
 
-                Manager managerProxy = createRepositoryProxy(repository);// 为了支持事务
+                Manager managerProxy = createRdbmsManagerProxy(manager);// 为了支持事务
 
                 this.manager = managerProxy;
 
@@ -109,13 +109,13 @@ public class RdbmsManagerFactory implements ManagerFactory {
 
     }
 
-    private Manager createRepositoryProxy(final RdbmsManager repository) {
+    private Manager createRdbmsManagerProxy(final RdbmsManager manager) {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         Object proxy = Proxy.newProxyInstance(classLoader, new Class[] { Manager.class }, new InvocationHandler() {
             @Override
             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
-                Object result = null;
+                Object result;
 
                 Transaction transaction = method.getAnnotation(Transaction.class);
                 if (transaction != null) {
@@ -126,7 +126,7 @@ public class RdbmsManagerFactory implements ManagerFactory {
                     }
 
                     try {
-                        result = method.invoke(repository, args);
+                        result = method.invoke(manager, args);
                         sqlSession.commit();
                     } catch (Exception e) {
                         sqlSession.rollback();
@@ -136,7 +136,7 @@ public class RdbmsManagerFactory implements ManagerFactory {
                         sqlSession.close();
                     }
                 } else {
-                    result = method.invoke(repository, args);
+                    result = method.invoke(manager, args);
                 }
 
                 return result;

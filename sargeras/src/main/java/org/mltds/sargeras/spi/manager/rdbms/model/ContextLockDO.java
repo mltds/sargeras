@@ -9,7 +9,7 @@ public class ContextLockDO {
 
     private Long id;
     private Long contextId;
-    private String reqId;
+    private String triggerId;
     private Date createTime;
     private Date expireTime;
 
@@ -29,12 +29,12 @@ public class ContextLockDO {
         this.contextId = contextId;
     }
 
-    public String getReqId() {
-        return reqId;
+    public String gettriggerId() {
+        return triggerId;
     }
 
-    public void setReqId(String reqId) {
-        this.reqId = reqId;
+    public void settriggerId(String triggerId) {
+        this.triggerId = triggerId;
     }
 
     public Date getCreateTime() {

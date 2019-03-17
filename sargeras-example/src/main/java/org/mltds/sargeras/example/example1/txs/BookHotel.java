@@ -3,8 +3,8 @@ package org.mltds.sargeras.example.example1.txs;
 import org.mltds.sargeras.api.SagaContext;
 import org.mltds.sargeras.api.SagaTx;
 import org.mltds.sargeras.api.SagaTxStatus;
+import org.mltds.sargeras.example.example1.BookResult;
 import org.mltds.sargeras.example.example1.FamilyMember;
-import org.mltds.sargeras.example.example1.Result;
 
 public class BookHotel implements SagaTx {
     public static final String HOTEL_ORDER_NO = "HOTEL_ORDER_NO";
@@ -32,12 +32,12 @@ public class BookHotel implements SagaTx {
             return SagaTxStatus.SUCCESS;
         } else {
 
-            Result result = new Result();
-            result.success = false;
-            result.errorMessage = "预定酒店失败，没有房间了，别去了~~~";
+            BookResult bookResult = new BookResult();
+            bookResult.success = false;
+            bookResult.errorMessage = "预定酒店失败，没有房间了，别去了~~~";
 
-            context.saveBizResult(result);
-            return SagaTxStatus.EXE_FAIL_TO_COMP;
+            context.saveBizResult(bookResult);
+            return SagaTxStatus.FAILURE;
         }
 
     }

@@ -39,7 +39,7 @@ public class Example1 {
         SagaBuilder.newBuilder(appName, bizName)// 定义一个业务
                 .addTx(new BookCar())// 订汽车
                 .addTx(new BookAir())// 订机票
-                .addTx(new BookHotel(true))// 订酒店，false为强制失败
+                .addTx(new BookHotel(false))// 订酒店，false为强制失败
                 .addTx(new Summary()) // 汇总结果
                 .addListener(new LogListener()) // 增加一些log输出方便跟踪
                 .build();
@@ -66,11 +66,11 @@ public class Example1 {
 
         // 执行业务
         SagaResult sagaResult = saga.start(bizId, member);
-        Result result = sagaResult.getBizResult(Result.class);
+        BookResult bookResult = sagaResult.getBizResult(BookResult.class);
 
-        logger.info(JSON.toJSONString(result, true));
+        logger.info(JSON.toJSONString(bookResult, true));
 
-//        Runtime.getRuntime().exit(0);
+        Runtime.getRuntime().exit(0);
 
     }
 

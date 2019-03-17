@@ -27,7 +27,7 @@ public class SagaContext {
     private boolean lock = false;
     private Map<String, Object> infoCache = new HashMap<>();
 
-    private Manager manager = SagaApplication.getRepository();
+    private Manager manager = SagaApplication.getManager();
 
     private SagaContext() {
 
@@ -65,11 +65,12 @@ public class SagaContext {
     public static SagaContext loadContext(String appName, String bizName, String bizId) {
         SagaContext context = new SagaContext();
 
-        Manager manager = SagaApplication.getRepository();
+        Manager manager = SagaApplication.getManager();
         SagaContextBase base = manager.loadContext(appName, bizName, bizId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         base.setTriggerId(triggerId);
+
         context.base = base;
 
         context.saga = SagaApplication.getSaga(appName, bizName);
@@ -80,7 +81,7 @@ public class SagaContext {
     public static SagaContext loadContext(long contextId) {
         SagaContext context = new SagaContext();
 
-        Manager manager = SagaApplication.getRepository();
+        Manager manager = SagaApplication.getManager();
         SagaContextBase base = manager.loadContext(contextId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();

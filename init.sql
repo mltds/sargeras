@@ -33,7 +33,7 @@ CREATE TABLE `saga_context_info` (
 CREATE TABLE `saga_context_lock` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `context_id` bigint(20) NOT NULL,
-  `req_id` varchar(100) NOT NULL DEFAULT '',
+  `trigger_id` varchar(100) NOT NULL DEFAULT '',
   `create_time` datetime NOT NULL,
   `expire_time` datetime NOT NULL,
   PRIMARY KEY (`id`),

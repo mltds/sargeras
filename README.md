@@ -55,9 +55,9 @@
 
     // 执行业务
     SagaResult sagaResult = saga.start(bizId, member);
-    Result result = sagaResult.getBizResult(Result.class);
+    Result bookResult = sagaResult.getBizResult(Result.class);
 
-    logger.info(JSON.toJSONString(result, true));
+    logger.info(JSON.toJSONString(bookResult, true));
 
     ```
  
@@ -125,9 +125,9 @@ Sargeras 的启动器，正常流程是先 Build 需要的 Saga，然后使用�
 
 * SagaBean/SagaBeanFactory  
 是 Sargeras 的 SPI ，共有几种类型，并提供了默认实现
-    * Manager 用于启动/重新启动等一个 Saga
-    * Repository 用于存储持久化 SagaContext 相关信息
-    * Serialize 持久化的时候，有些大的信息需要序列化后再存储
+    * Service 用于启动/重新启动等一个 Saga
+    * Manager 用于管理 SagaContext 相关信息
+    * PollRetry 用于轮询重试处理中的业务
 
 * SagaListener  
 用于监听 Saga 的执行情况，在关键的节点会收到通知，里面有很多通知方法，具体可以到类里面查看，提供了2个默认实现
@@ -140,7 +140,7 @@ Sargeras 的启动器，正常流程是先 Build 需要的 Saga，然后使用�
 
 #### 没想清楚的地方
  * Saga的核心，应该是嵌入在业务系统里还是一个独立系统？  
-    目前SNAPSHOT版本是嵌入在业务系统里，比较简单、稳定、实用。但弊端也很明显，不容易升级维护，不方便做监控，对业务系统有入侵。
+    目前SNAPSHOT版本是嵌入在业务系统里，比较简单、稳定、实用。但弊端也很明显，不容易升级维护，不方便做监控，对业务系统有入侵。 当前的想法是提供两种实现，一种集成在业务系统里，一种有统一的管理中心。
  * Listener 是否应该有多个？  
     如果只允许有一个Listener，那么 onError 方法应当返回状态，现在默认为处理中
  * 当某个 TX execute 返回 EXE_FAIL_TO_COMP 时，这个 TX 是否需要补偿？  

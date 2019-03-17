@@ -57,7 +57,7 @@ public class DefaultPollRetry implements PollRetry {
         public void run() {
             while (true) {
 
-                Manager manager = SagaApplication.getRepository();
+                Manager manager = SagaApplication.getManager();
                 Service service = SagaApplication.getService();
                 int limit = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_LIMIT));
                 int interval = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_INTERVAL));

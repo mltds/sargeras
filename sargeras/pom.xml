@@ -30,18 +30,14 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
 
-        <!-- serialize by json -->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
         </dependency>
-
-        <managertory by RDBMS & MyBatis-->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid</artifactId>
         </dependency>
-        <!--MyBatis3.5 及以上只支持 JDK8 了-->
         <dependency>
             <groupId>org.mybatis</groupId>
             <artifactId>mybatis</artifactId>

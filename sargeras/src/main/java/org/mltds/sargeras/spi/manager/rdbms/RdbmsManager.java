@@ -169,23 +169,23 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    public boolean lock(long id, String reqId, int timeoutSec) {
+    public boolean lock(long id, String triggerId, int timeoutSec) {
 
         try {
             ContextLockDO contextLockDO = contextLockMapper.select(id);
             if (contextLockDO == null) {
-                contextLockDO = newLock(id, reqId, timeoutSec);
+                contextLockDO = newLock(id, triggerId, timeoutSec);
                 contextLockMapper.insert(contextLockDO);
                 return true;
             } else {
                 Calendar c = Calendar.getInstance();
                 boolean after = c.getTime().after(contextLockDO.getExpireTime());
                 if (after) {
-                    int delete = contextLockMapper.delete(id, contextLockDO.getReqId());
+                    int delete = contextLockMapper.delete(id, contextLockDO.gettriggerId());
                     if (delete <= 0) {
                         return false;
                     } else {
-                        contextLockDO = newLock(id, reqId, timeoutSec);
+                        contextLockDO = newLock(id, triggerId, timeoutSec);
                         contextLockMapper.insert(contextLockDO);
                         return true;
                     }
@@ -198,10 +198,10 @@ public class RdbmsManager implements Manager {
         }
     }
 
-    private ContextLockDO newLock(long id, String reqId, int timeoutSec) {
+    private ContextLockDO newLock(long id, String triggerId, int timeoutSec) {
         ContextLockDO contextLockDO = new ContextLockDO();
         contextLockDO.setContextId(id);
-        contextLockDO.setReqId(reqId);
+        contextLockDO.settriggerId(triggerId);
 
         Calendar c = Calendar.getInstance();
         contextLockDO.setCreateTime(c.getTime());
@@ -213,22 +213,22 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    public boolean unlock(long id, String reqId) {
+    public boolean unlock(long id, String triggerId) {
 
         try {
             ContextLockDO contextLockDO = contextLockMapper.select(id);
             if (contextLockDO == null) {
                 return false;
             } else {
-                if (contextLockDO.getReqId().equals(reqId)) {
-                    int delete = contextLockMapper.delete(id, reqId);
+                if (contextLockDO.gettriggerId().equals(triggerId)) {
+                    int delete = contextLockMapper.delete(id, triggerId);
                     return delete > 0;
                 } else {
                     return false;
                 }
             }
         } catch (Exception e) {
-            logger.warn("操作数据库释放锁失败ContextId:{},ReqId:{}", new Object[] { id, reqId }, e);
+            logger.warn("操作数据库释放锁失败ContextId:{},triggerId:{}", new Object[] { id, triggerId }, e);
             return false;
         }
     }

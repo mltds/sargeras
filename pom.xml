@@ -65,14 +65,14 @@
                 <version>1.2.3</version>
             </dependency>
 
-            <!-- serialize by json -->
+            <!-- info serialize by json -->
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>1.2.56</version>
             </dependency>
 
-            <managertory by RDBMS & MyBatis-->
+            <!-- rdbms -->
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>druid</artifactId>

@@ -14,8 +14,6 @@ import org.mltds.sargeras.spi.manager.Manager;
  */
 public class DefaultService implements Service {
 
-    private Manager manager = SagaApplication.getRepository();
-
     @Override
     public SagaResult start(Saga saga, String bizId, Object bizParam) throws SagaContextLockFailException {
         // Build Saga Context
@@ -110,7 +108,7 @@ public class DefaultService implements Service {
                     } else {
                         context.saveNextTriggerTime();
                     }
-                } else if (SagaTxStatus.EXE_FAIL_TO_COMP.equals(txStatus)) {
+                } else if (SagaTxStatus.FAILURE.equals(txStatus)) {
                     status = SagaStatus.COMPENSATING;
                     context.saveStatus(status);
                     listenerChain.onExeFailToComp(context);
@@ -133,7 +131,7 @@ public class DefaultService implements Service {
                     } else {
                         context.saveNextTriggerTime();
                     }
-                } else if (SagaTxStatus.COMP_FAIL_TO_FINAL.equals(txStatus)) {
+                } else if (SagaTxStatus.FAILURE.equals(txStatus)) {
                     status = SagaStatus.COMPENSATE_FAIL;
                     context.saveStatus(status);
                     listenerChain.onComFailToFinal(context);

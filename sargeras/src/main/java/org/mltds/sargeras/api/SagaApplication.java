@@ -41,7 +41,7 @@ public class SagaApplication {
         return getBean(Service.class);
     }
 
-    public static Manager getRepository() {
+    public static Manager getManager() {
         return getBean(Manager.class);
     }
 
