@@ -22,9 +22,9 @@
  
  1. 需要一个关系型数据库，支持 JDBC 的，例如 MySQL ，执行 init.sql 脚本。
  1. 配置文件一枚，命名为：sargeras.properties ，放在 classpath 目录下。（参见 Example 模块的配置）
-    > repository.rdbms.datasource.url=jdbc:mysql://mydb.com:3306/sargeras  
-      repository.rdbms.datasource.username=sunyi  
-      repository.rdbms.datasource.password=sunyi
+    > manager.rdbms.datasource.url=jdbc:mysql://mydb.com:3306/sargeras  
+      manager.rdbms.datasource.username=sunyi  
+      manager.rdbms.datasource.password=sunyi
  1. 使用 SagaBuilder 配置一个 Saga 流程，使用 SagaLauncher 启动 Saga 框架。（参见 Example 模块的 Example1）
      ```java
     SagaBuilder.newBuilder(appName, bizName)// 定义一个业务

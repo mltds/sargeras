@@ -1,19 +1,14 @@
 package org.mltds.sargeras.api;
 
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.mltds.sargeras.api.spi.SagaBean;
-import org.mltds.sargeras.api.spi.SagaBeanFactory;
-import org.mltds.sargeras.exception.SagaException;
-import org.mltds.sargeras.manager.Manager;
-import org.mltds.sargeras.repository.Repository;
+import org.mltds.sargeras.api.exception.SagaException;
+import org.mltds.sargeras.spi.SagaBean;
+import org.mltds.sargeras.spi.SagaBeanFactory;
+import org.mltds.sargeras.spi.pollretry.PollRetry;
 import org.mltds.sargeras.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,12 +38,12 @@ public class SagaLauncher {
             // 初始化 BeanFactory
             initBeanFactory();
 
-            // 启动轮询重试线程
-            initPollRetryThread();
-
-            logger.info("Saga Launch 启动完成...");
+            // 启动轮询重试
+            startPollRetry();
 
             launched.set(true);
+
+            logger.info("Saga Launch 启动完成...");
         }
 
     }
@@ -90,58 +85,9 @@ public class SagaLauncher {
         logger.info("Saga 初始化 BeanFactory 成功...");
     }
 
-    public static void initPollRetryThread() {
-
-        int nThreads = Integer.valueOf(SagaConfig.getProperty(SagaConfig.POLLRETRY_NTHREADS));
-
-        final ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
-
-        for (int i = 0; i < nThreads; i++) {
-            executorService.submit(new PollRetryThread(), new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    Thread t = new Thread(r);
-                    t.setDaemon(true);
-                    return t;
-                }
-            });
-        }
-
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                executorService.shutdownNow();
-            }
-        });
-
-    }
-
-    public static class PollRetryThread implements Runnable {
-        @Override
-        public void run() {
-            while (true) {
-
-                Repository repository = SagaApplication.getRepository();
-                Manager manager = SagaApplication.getManager();
-                int limit = Integer.valueOf(SagaConfig.getProperty(SagaConfig.POLLRETRY_LIMIT));
-                int interval = Integer.valueOf(SagaConfig.getProperty(SagaConfig.POLLRETRY_INTERVAL));
-
-                List<Long> needRetryContextList = repository.findNeedRetryContextList(limit);
-
-                for (Long contextId : needRetryContextList) {
-                    try {
-                        manager.pollRetry(contextId);
-                    } catch (Exception e) {
-                        logger.warn("轮询重试期间发生异常, Context ID:" + contextId, e);
-                    }
-                }
-
-                try {
-                    Thread.sleep(interval * 1000);// 转换成秒
-                } catch (InterruptedException e) {
-                }
-            }
-        }
+    public static void startPollRetry() {
+        PollRetry pollRetry = SagaApplication.getPollRetry();
+        pollRetry.startPollRetry();
     }
 
 }

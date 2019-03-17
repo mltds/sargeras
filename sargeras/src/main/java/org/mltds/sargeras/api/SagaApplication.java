@@ -3,13 +3,13 @@ package org.mltds.sargeras.api;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.mltds.sargeras.api.spi.SagaBean;
-import org.mltds.sargeras.api.spi.SagaBeanFactory;
-import org.mltds.sargeras.exception.SagaException;
-import org.mltds.sargeras.exception.SagaNotFoundException;
-import org.mltds.sargeras.manager.Manager;
-import org.mltds.sargeras.repository.Repository;
-import org.mltds.sargeras.serialize.Serialize;
+import org.mltds.sargeras.api.exception.SagaException;
+import org.mltds.sargeras.api.exception.SagaNotFoundException;
+import org.mltds.sargeras.spi.SagaBean;
+import org.mltds.sargeras.spi.SagaBeanFactory;
+import org.mltds.sargeras.spi.manager.Manager;
+import org.mltds.sargeras.spi.service.Service;
+import org.mltds.sargeras.spi.pollretry.PollRetry;
 
 /**
  * @author sunyi
@@ -37,16 +37,12 @@ public class SagaApplication {
         return (T) beanFactory.getObject();
     }
 
-    public static Manager getManager() {
+    public static Service getService() {
+        return getBean(Service.class);
+    }
+
+    public static Manager getRepository() {
         return getBean(Manager.class);
-    }
-
-    public static Repository getRepository() {
-        return getBean(Repository.class);
-    }
-
-    public static Serialize getSerialize() {
-        return getBean(Serialize.class);
     }
 
     public static Saga getSaga(String keyName) {
@@ -61,4 +57,7 @@ public class SagaApplication {
         return getSaga(Saga.getKeyName(appName, bizName));
     }
 
+    public static PollRetry getPollRetry() {
+        return getBean(PollRetry.class);
+    }
 }

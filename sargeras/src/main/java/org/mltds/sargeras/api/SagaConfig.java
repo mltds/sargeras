@@ -5,7 +5,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.mltds.sargeras.exception.SagaException;
+import org.mltds.sargeras.api.exception.SagaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,8 +18,10 @@ public class SagaConfig {
     public static final String CONFIG_FILE_DEFAULT = "/sargeras/sargeras.default.properties";
 
     public static final String FACTORY_PREFIX = "factory.";
-    public static final String REPOSITORY_RDBMS_DATASOURCE = "repository.rdbms.datasource.";
     public static final String LISTENER_LOGGER_NAME = "listener.logger.name";
+
+    /* manager */
+    public static final String MANAGER_RDBMS_DATASOURCE = "manager.rdbms.datasource.";
 
     /* pollretry */
     public static final String POLLRETRY_PREFIX = "pollretry.";

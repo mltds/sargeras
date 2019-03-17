@@ -8,15 +8,15 @@
     </settings>
 
     <typeAliases>
-        <typeAlias alias="Context" type="org.mltds.sargeras.repository.rdbms.model.ContextDO"/>
-        <typeAlias alias="ContextInfo" type="org.mltds.sargeras.repository.rdbms.model.ContextInfoDO"/>
-        <typeAlias alias="ContextLock" type="org.mltds.sargeras.repository.rdbms.model.ContextLockDO"/>
+        <typeAlias alias="Context" type="org.mltds.sargeras.spi.manager.rdbms.model.ContextDO"/>
+        <typeAlias alias="ContextInfo" type="org.mltds.sargeras.spi.manager.rdbms.model.ContextInfoDO"/>
+        <typeAlias alias="ContextLock" type="org.mltds.sargeras.spi.manager.rdbms.model.ContextLockDO"/>
     </typeAliases>
 
     <environments default="default">
         <environment id="default">
             <transactionManager type="JDBC"/>
-            <dataSource type="org.mltds.sargeras.repository.rdbms.MybatisDataSourceFactory"/>
+            <dataSource type="org.mltds.sargeras.spi.manager.rdbms.MybatisDataSourceFactory"/>
         </environment>
     </environments>
 

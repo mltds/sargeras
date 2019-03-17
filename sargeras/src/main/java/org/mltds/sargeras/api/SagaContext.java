@@ -2,13 +2,13 @@ package org.mltds.sargeras.api;
 
 import java.util.*;
 
-import org.mltds.sargeras.repository.Repository;
+import org.mltds.sargeras.spi.manager.Manager;
 import org.mltds.sargeras.utils.Utils;
 
 /**
  * {@link SagaContext} 在JVM中的生命周期是线程级别的。<br/>
  * 即当执行一个 {@link Saga} 时，会新建一个 {@link SagaContext}，当线程结束时，这个 {@link SagaContext} 对象会被失效。<br/>
- * 如果这个 {@link Saga} 并没有执行完，当 reload 再次重试时，会根据 {@link Repository} 中的信息重新构建出这个 {@link SagaContext}，但是一个全新的JVM对象。<br/>
+ * 如果这个 {@link Saga} 并没有执行完，当 reload 再次重试时，会根据 {@link Manager} 中的信息重新构建出这个 {@link SagaContext}，但是一个全新的JVM对象。<br/>
  * 
  * @author sunyi
  */
@@ -27,7 +27,7 @@ public class SagaContext {
     private boolean lock = false;
     private Map<String, Object> persistentInfoCache = new HashMap<>();
 
-    private Repository repository = SagaApplication.getRepository();
+    private Manager manager = SagaApplication.getRepository();
 
     private SagaContext() {
 
@@ -65,8 +65,8 @@ public class SagaContext {
     public static SagaContext loadContext(String appName, String bizName, String bizId) {
         SagaContext context = new SagaContext();
 
-        Repository repository = SagaApplication.getRepository();
-        SagaContextBase sagaContextBase = repository.loadContext(appName, bizName, bizId);
+        Manager manager = SagaApplication.getRepository();
+        SagaContextBase sagaContextBase = manager.loadContext(appName, bizName, bizId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         sagaContextBase.setTriggerId(triggerId);
@@ -81,8 +81,8 @@ public class SagaContext {
     public static SagaContext loadContext(long contextId) {
         SagaContext context = new SagaContext();
 
-        Repository repository = SagaApplication.getRepository();
-        SagaContextBase sagaContextBase = repository.loadContext(contextId);
+        Manager manager = SagaApplication.getRepository();
+        SagaContextBase sagaContextBase = manager.loadContext(contextId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         sagaContextBase.setTriggerId(triggerId);
@@ -96,7 +96,7 @@ public class SagaContext {
     }
 
     public void saveAndLock() {
-        long id = repository.saveContextAndLock(base, saga.getLockTimeout());
+        long id = manager.saveContextAndLock(base, saga.getLockTimeout());
         lock = true;
         base.setId(id);
     }
@@ -106,7 +106,7 @@ public class SagaContext {
     }
 
     public void saveStatus(SagaStatus status) {
-        repository.saveContextStatus(base.getId(), status);
+        manager.saveContextStatus(base.getId(), status);
         base.setStatus(status);
     }
 
@@ -129,7 +129,7 @@ public class SagaContext {
     }
 
     public void saveInfo(String key, Object value) {
-        repository.saveContextInfo(base.getId(), key, value);
+        manager.saveContextInfo(base.getId(), key, value);
         persistentInfoCache.put(key, value);
     }
 
@@ -138,7 +138,7 @@ public class SagaContext {
         if (persistentInfoCache.containsKey(key)) {
             return (T) persistentInfoCache.get(key);
         } else {
-            T v = repository.loadContextInfo(base.getId(), key, cls);
+            T v = manager.loadContextInfo(base.getId(), key, cls);
             persistentInfoCache.put(key, v);
             return v;
         }
@@ -154,7 +154,7 @@ public class SagaContext {
 
     public void saveCurrentTx(Class<? extends SagaTx> currentTx) {
         String name = currentTx.getName();
-        repository.saveCurrentTx(base.getId(), name);
+        manager.saveCurrentTx(base.getId(), name);
         base.setCurrentTxName(name);
         this.currentTx = currentTx;
     }
@@ -169,7 +169,7 @@ public class SagaContext {
 
     public void savePreExecutedTx(Class<? extends SagaTx> preExecutedTx) {
         String name = preExecutedTx.getName();
-        repository.savePreExecutedTx(base.getId(), name);
+        manager.savePreExecutedTx(base.getId(), name);
         base.setPreExecutedTxName(name);
         this.preExecutedTx = preExecutedTx;
 
@@ -185,7 +185,7 @@ public class SagaContext {
 
     public void savePreCompensatedTx(Class<? extends SagaTx> preCompensatedTx) {
         String name = preCompensatedTx.getName();
-        repository.savePreCompensatedTx(base.getId(), name);
+        manager.savePreCompensatedTx(base.getId(), name);
         base.setPreCompensatedTxName(name);
         this.preCompensatedTx = preCompensatedTx;
     }
@@ -196,7 +196,7 @@ public class SagaContext {
      * @return
      */
     public void incrementTriggerCount() {
-        repository.incrementTriggerCount(base.getId());
+        manager.incrementTriggerCount(base.getId());
         base.setTriggerCount(base.getTriggerCount() + 1);
     }
 
@@ -207,7 +207,7 @@ public class SagaContext {
      */
     public Date saveNextTriggerTime() {
         Date nextTriggerTime = calculationNextTriggerTime();
-        repository.saveNextTriggerTime(base.getId(), nextTriggerTime);
+        manager.saveNextTriggerTime(base.getId(), nextTriggerTime);
         base.setNextTriggerTime(nextTriggerTime);
         return nextTriggerTime;
     }
@@ -243,7 +243,7 @@ public class SagaContext {
             return true;
         } else {
             Integer lockTimeout = saga.getLockTimeout();
-            boolean lock = repository.lock(base.getId(), base.getTriggerId(), lockTimeout);
+            boolean lock = manager.lock(base.getId(), base.getTriggerId(), lockTimeout);
             this.lock = lock;
             return lock;
         }
@@ -258,7 +258,7 @@ public class SagaContext {
         if (!this.lock) {
             return true;
         } else {
-            boolean unlock = repository.unlock(base.getId(), base.getTriggerId());
+            boolean unlock = manager.unlock(base.getId(), base.getTriggerId());
             if (unlock) {
                 this.lock = false;
             }

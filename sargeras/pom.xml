@@ -36,7 +36,7 @@
             <artifactId>fastjson</artifactId>
         </dependency>
 
-        <!-- repository by RDBMS & MyBatis-->
+        <managertory by RDBMS & MyBatis-->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid</artifactId>

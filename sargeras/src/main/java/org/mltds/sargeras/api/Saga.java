@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.mltds.sargeras.listener.SagaListener;
-import org.mltds.sargeras.manager.Manager;
+import org.mltds.sargeras.api.listener.SagaListener;
+import org.mltds.sargeras.spi.service.Service;
 
 /**
  * Saga 代表着一个长事务（LLT,long live transaction），由多个小事务（Tx）有序组成。<br/>
@@ -101,13 +101,13 @@ public class Saga {
      * 首次执行
      */
     public SagaResult start(String bizId, Object bizParam) {
-        Manager manager = SagaApplication.getManager();
-        return manager.start(this, bizId, bizParam);
+        Service service = SagaApplication.getService();
+        return service.start(this, bizId, bizParam);
     }
 
     public SagaResult restart(String bizId) {
-        Manager manager = SagaApplication.getManager();
-        return manager.restart(this, bizId);
+        Service service = SagaApplication.getService();
+        return service.restart(this, bizId);
     }
 
 }

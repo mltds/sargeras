@@ -12,10 +12,10 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.junit.Before;
 import org.junit.Test;
-import org.mltds.sargeras.repository.rdbms.mapper.ContextInfoMapper;
-import org.mltds.sargeras.repository.rdbms.mapper.ContextMapper;
-import org.mltds.sargeras.repository.rdbms.model.ContextDO;
-import org.mltds.sargeras.repository.rdbms.model.ContextInfoDO;
+import org.mltds.sargeras.spi.manager.rdbms.mapper.ContextInfoMapper;
+import org.mltds.sargeras.spi.manager.rdbms.mapper.ContextMapper;
+import org.mltds.sargeras.spi.manager.rdbms.model.ContextDO;
+import org.mltds.sargeras.spi.manager.rdbms.model.ContextInfoDO;
 
 /**
  * @author sunyi

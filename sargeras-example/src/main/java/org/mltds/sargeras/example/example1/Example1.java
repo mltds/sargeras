@@ -7,7 +7,7 @@ import org.mltds.sargeras.example.example1.txs.BookAir;
 import org.mltds.sargeras.example.example1.txs.BookCar;
 import org.mltds.sargeras.example.example1.txs.BookHotel;
 import org.mltds.sargeras.example.example1.txs.Summary;
-import org.mltds.sargeras.listener.LogListener;
+import org.mltds.sargeras.api.listener.LogListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
