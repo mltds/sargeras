@@ -28,7 +28,7 @@ public class BookHotel implements SagaTx {
         if (bookSucc) {
             // 预约酒店成功，对方返回一个酒店预约单号
             String bookHotelOrderNo = "hotel456";
-            context.savePersistentInfo(HOTEL_ORDER_NO, bookHotelOrderNo);
+            context.saveInfo(HOTEL_ORDER_NO, bookHotelOrderNo);
             return SagaTxStatus.SUCCESS;
         } else {
 
@@ -44,7 +44,7 @@ public class BookHotel implements SagaTx {
 
     @Override
     public SagaTxStatus compensate(SagaContext context) {
-        String bookHotelOrderNo = context.getPersistentInfo(HOTEL_ORDER_NO, String.class);
+        String bookHotelOrderNo = context.loadInfo(HOTEL_ORDER_NO, String.class);
         // 用这个 bookHotelOrderNo 取消预定
         return SagaTxStatus.SUCCESS;
     }

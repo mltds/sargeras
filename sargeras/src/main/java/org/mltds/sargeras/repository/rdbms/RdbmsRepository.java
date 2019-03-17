@@ -4,10 +4,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.mltds.sargeras.api.*;
+import org.mltds.sargeras.api.SagaApplication;
+import org.mltds.sargeras.api.SagaContextBase;
+import org.mltds.sargeras.api.SagaStatus;
 import org.mltds.sargeras.exception.SagaException;
-import org.mltds.sargeras.exception.SagaNotFoundException;
 import org.mltds.sargeras.repository.Repository;
 import org.mltds.sargeras.repository.rdbms.mapper.ContextInfoMapper;
 import org.mltds.sargeras.repository.rdbms.mapper.ContextLockMapper;
@@ -16,7 +18,6 @@ import org.mltds.sargeras.repository.rdbms.model.ContextDO;
 import org.mltds.sargeras.repository.rdbms.model.ContextInfoDO;
 import org.mltds.sargeras.repository.rdbms.model.ContextLockDO;
 import org.mltds.sargeras.serialize.Serialize;
-import org.mltds.sargeras.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,36 +38,35 @@ public class RdbmsRepository implements Repository {
 
     @Override
     @Transaction
-    public void saveContextAndLock(SagaContext context) {
+    public long saveContextAndLock(SagaContextBase context, int lockTimeout) {
 
         ContextDO contextDO = sagaContextToContextDO(context);
-        contextDO.setCreateTime(new Date());
-        contextDO.setModifyTime(new Date());
-        contextMapper.insert(contextDO);
-        context.setId(contextDO.getId());
 
-        context.lock();
+        Calendar c = Calendar.getInstance();
+
+        contextDO.setCreateTime(c.getTime());
+        contextDO.setModifyTime(c.getTime());
+
+        contextMapper.insert(contextDO);
+
+        Long id = contextDO.getId();
+
+        lock(id, context.getTriggerId(), lockTimeout);
+
+        return id;
 
     }
 
     @Override
-    public SagaContext loadContext(long contextId) {
+    public SagaContextBase loadContext(long contextId) {
 
         ContextDO contextDO = contextMapper.selectById(contextId);
         if (contextDO == null) {
             throw new SagaException("查找Context失败，ID: " + contextId);
         }
 
-        String appName = contextDO.getAppName();
-        String bizName = contextDO.getBizName();
-
-        Saga saga = SagaApplication.getSaga(appName, bizName);
-        if (saga == null) {
-            throw new SagaNotFoundException(appName, bizName);
-        }
-
         try {
-            return contextDOToSagaContext(contextDO, saga);
+            return contextDOToSagaContext(contextDO);
         } catch (ClassNotFoundException e) {
             throw new SagaException("重新构建SagaContext失败，ID：" + contextId, e);
         }
@@ -74,20 +74,15 @@ public class RdbmsRepository implements Repository {
     }
 
     @Override
-    public SagaContext loadContext(String appName, String bizName, String bizId) {
+    public SagaContextBase loadContext(String appName, String bizName, String bizId) {
 
         ContextDO contextDO = contextMapper.selectByBiz(appName, bizName, bizId);
         if (contextDO == null) {
             throw new SagaException("查找Context失败，appName: " + appName + "，bizName：" + bizName + "，bizId：" + bizId);
         }
 
-        Saga saga = SagaApplication.getSaga(appName, bizName);
-        if (saga == null) {
-            throw new SagaNotFoundException(appName, bizName);
-        }
-
         try {
-            return contextDOToSagaContext(contextDO, saga);
+            return contextDOToSagaContext(contextDO);
         } catch (ClassNotFoundException e) {
             throw new SagaException("重新构建SagaContext失败，ID：" + contextDO.getId(), e);
         }
@@ -104,28 +99,28 @@ public class RdbmsRepository implements Repository {
     }
 
     @Override
-    public void saveCurrentTx(long contextId, Class<? extends SagaTx> cls) {
+    public void saveCurrentTx(long contextId, String cls) {
         ContextDO contextDO = new ContextDO();
         contextDO.setId(contextId);
-        contextDO.setCurrentTx(cls.getName());
+        contextDO.setCurrentTxName(cls);
         contextDO.setModifyTime(new Date());
         contextMapper.updateById(contextDO);
     }
 
     @Override
-    public void savePreExecutedTx(long contextId, Class<? extends SagaTx> cls) {
+    public void savePreExecutedTx(long contextId, String cls) {
         ContextDO contextDO = new ContextDO();
         contextDO.setId(contextId);
-        contextDO.setPreExecutedTx(cls.getName());
+        contextDO.setPreExecutedTxName(cls);
         contextDO.setModifyTime(new Date());
         contextMapper.updateById(contextDO);
     }
 
     @Override
-    public void savePreCompensatedTx(long contextId, Class<? extends SagaTx> cls) {
+    public void savePreCompensatedTx(long contextId, String cls) {
         ContextDO contextDO = new ContextDO();
         contextDO.setId(contextId);
-        contextDO.setPreCompensatedTx(cls.getName());
+        contextDO.setPreCompensatedTxName(cls);
         contextDO.setModifyTime(new Date());
         contextMapper.updateById(contextDO);
     }
@@ -248,59 +243,24 @@ public class RdbmsRepository implements Repository {
         return contextMapper.findNeedRetryContextList(new Date(), limit);
     }
 
-    private ContextDO sagaContextToContextDO(SagaContext sagaContext) {
-        ContextDO contextDO = new ContextDO();
-        contextDO.setId(sagaContext.getId());
-        contextDO.setAppName(sagaContext.getSaga().getAppName());
-        contextDO.setBizName(sagaContext.getSaga().getBizName());
-        contextDO.setBizId(sagaContext.getBizId());
-        contextDO.setStatus(sagaContext.getStatus());
-
-        if (sagaContext.getCurrentTx() != null) {
-            contextDO.setCurrentTx(sagaContext.getCurrentTx().getName());
+    private ContextDO sagaContextToContextDO(SagaContextBase sagaContextBase) {
+        try {
+            ContextDO contextDO = new ContextDO();
+            BeanUtils.copyProperties(contextDO, sagaContextBase);
+            return contextDO;
+        } catch (Exception e) {
+            throw new SagaException("SagaContextBase转换为ContextDO失败，BizID:" + sagaContextBase.getBizId(), e);
         }
-
-        if (sagaContext.getPreExecutedTx() != null) {
-            contextDO.setPreExecutedTx(sagaContext.getPreExecutedTx().getName());
-        }
-        if (sagaContext.getPreCompensatedTx() != null) {
-            contextDO.setPreCompensatedTx(sagaContext.getPreCompensatedTx().getName());
-        }
-
-        contextDO.setTriggerCount(sagaContext.getTriggerCount());
-        contextDO.setNextTriggerTime(sagaContext.getNextTriggerTime());
-
-        contextDO.setCreateTime(sagaContext.getCreateTime());
-        contextDO.setExpireTime(sagaContext.getExpireTime());
-        contextDO.setModifyTime(sagaContext.getModifyTime());
-        return contextDO;
     }
 
-    @SuppressWarnings("unchecked")
-    private SagaContext contextDOToSagaContext(ContextDO contextDO, Saga saga) throws ClassNotFoundException {
-
-        SagaContext sagaContext = new SagaContext(saga);
-        sagaContext.setId(contextDO.getId());
-        sagaContext.setBizId(contextDO.getBizId());
-        sagaContext.setStatus(contextDO.getStatus());
-
-        Class<?> currentTx = Utils.loadClass(contextDO.getCurrentTx());
-        sagaContext.setCurrentTx((Class<? extends SagaTx>) currentTx);
-
-        Class<?> preExecutedTx = Utils.loadClass(contextDO.getPreExecutedTx());
-        sagaContext.setPreExecutedTx((Class<? extends SagaTx>) preExecutedTx);
-
-        Class<?> preCompensatedTx = Utils.loadClass(contextDO.getPreCompensatedTx());
-        sagaContext.setPreCompensatedTx((Class<? extends SagaTx>) preCompensatedTx);
-
-        sagaContext.setTriggerCount(contextDO.getTriggerCount());
-        sagaContext.setNextTriggerTime(contextDO.getNextTriggerTime());
-
-        sagaContext.setCreateTime(contextDO.getCreateTime());
-        sagaContext.setExpireTime(contextDO.getExpireTime());
-        sagaContext.setModifyTime(contextDO.getModifyTime());
-
-        return sagaContext;
+    private SagaContextBase contextDOToSagaContext(ContextDO contextDO) throws ClassNotFoundException {
+        try {
+            SagaContextBase sagaContextBase = new SagaContextBase();
+            BeanUtils.copyProperties(sagaContextBase, contextDO);
+            return sagaContextBase;
+        } catch (Exception e) {
+            throw new SagaException("ContextDO转换为SagaContextBase失败，BizID:" + contextDO.getBizId(), e);
+        }
     }
 
     void setContextMapper(ContextMapper contextMapper) {

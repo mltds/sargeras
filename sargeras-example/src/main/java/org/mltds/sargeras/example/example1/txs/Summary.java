@@ -15,9 +15,9 @@ public class Summary implements SagaTx {
 
         String bizId = context.getBizId();
         FamilyMember member = context.getBizParam(FamilyMember.class);
-        String carOrderNo = context.getPersistentInfo(BookCar.CAR_ORDER_NO, String.class);
-        String airOrderNo = context.getPersistentInfo(BookAir.AIR_ORDER_NO, String.class);
-        String hotelOrderNo = context.getPersistentInfo(BookHotel.HOTEL_ORDER_NO, String.class);
+        String carOrderNo = context.loadInfo(BookCar.CAR_ORDER_NO, String.class);
+        String airOrderNo = context.loadInfo(BookAir.AIR_ORDER_NO, String.class);
+        String hotelOrderNo = context.loadInfo(BookHotel.HOTEL_ORDER_NO, String.class);
 
         Result result = new Result();
 
@@ -31,7 +31,7 @@ public class Summary implements SagaTx {
         result.hotelOrderNo = hotelOrderNo;
 
         // 将所有的预定信息汇总起来，返回结果
-        context.setBizResult(result);
+        context.saveBizResult(result);
 
         return SagaTxStatus.SUCCESS;
     }

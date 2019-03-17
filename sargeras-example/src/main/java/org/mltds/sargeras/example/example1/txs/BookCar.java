@@ -12,13 +12,13 @@ public class BookCar implements SagaTx {
     public SagaTxStatus execute(SagaContext context) {
         // 预约汽车成功，对方给了一个汽车预约单号
         String bookCarOrderNo = "car123";
-        context.savePersistentInfo(CAR_ORDER_NO, bookCarOrderNo);
+        context.saveInfo(CAR_ORDER_NO, bookCarOrderNo);
         return SagaTxStatus.SUCCESS;
     }
 
     @Override
     public SagaTxStatus compensate(SagaContext context) {
-        String bookCarOrderNo = context.getPersistentInfo(CAR_ORDER_NO, String.class);
+        String bookCarOrderNo = context.loadInfo(CAR_ORDER_NO, String.class);
         // 用这个 bookCarOrderNo 取消预定
         return SagaTxStatus.SUCCESS;
     }

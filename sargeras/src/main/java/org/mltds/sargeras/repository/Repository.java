@@ -3,9 +3,8 @@ package org.mltds.sargeras.repository;
 import java.util.Date;
 import java.util.List;
 
-import org.mltds.sargeras.api.SagaContext;
+import org.mltds.sargeras.api.SagaContextBase;
 import org.mltds.sargeras.api.SagaStatus;
-import org.mltds.sargeras.api.SagaTx;
 import org.mltds.sargeras.api.spi.SagaBean;
 
 /**
@@ -14,19 +13,19 @@ import org.mltds.sargeras.api.spi.SagaBean;
 public interface Repository extends SagaBean {
 
     /**
-     * 如果 ID 在存储中存在则更新，否则作为一条新记录去创建。
+     * 作为一条新记录去创建并获取锁，获取锁保证一定成功，如果 BizId 已存在则报错
      */
-    void saveContextAndLock(SagaContext context);
+    long saveContextAndLock(SagaContextBase context, int lockTimeout);
 
     /**
-     * 根据 ContextId 从存储的信息中，重新构建出一个 {@link SagaContext}
+     * 根据 ContextId 从存储的信息中，重新构建出一个 {@link SagaContextBase}
      */
-    SagaContext loadContext(long contextId);
+    SagaContextBase loadContext(long contextId);
 
     /**
-     * 根据 BizId 从存储的信息中，重新构建出一个 {@link SagaContext}
+     * 根据 BizId 从存储的信息中，重新构建出一个 {@link SagaContextBase}
      */
-    SagaContext loadContext(String appName, String bizName, String bizId);
+    SagaContextBase loadContext(String appName, String bizName, String bizId);
 
     /**
      * 保存状态并更新ModifyTime
@@ -35,18 +34,19 @@ public interface Repository extends SagaBean {
 
     /**
      * 保存当前要执行/执行中的TX
+     *
      */
-    void saveCurrentTx(long contextId, Class<? extends SagaTx> cls);
+    void saveCurrentTx(long contextId, String cls);
 
     /**
      * 保存上一个执行完的TX
      */
-    void savePreExecutedTx(long contextId, Class<? extends SagaTx> cls);
+    void savePreExecutedTx(long contextId, String cls);
 
     /**
      * 保存上一个补偿完的TX
      */
-    void savePreCompensatedTx(long contextId, Class<? extends SagaTx> cls);
+    void savePreCompensatedTx(long contextId, String cls);
 
     /**
      * 触发次数自增加一

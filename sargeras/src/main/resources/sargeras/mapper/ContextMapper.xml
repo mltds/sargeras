@@ -10,9 +10,9 @@
         <result property="bizName" column="biz_name"/>
         <result property="bizId" column="biz_id"/>
         <result property="status" column="status"/>
-        <result property="currentTx" column="current_tx"/>
-        <result property="preExecutedTx" column="pre_executed_tx"/>
-        <result property="preCompensatedTx" column="pre_compensated_tx"/>
+        <result property="currentTxName" column="current_tx"/>
+        <result property="preExecutedTxName" column="pre_executed_tx"/>
+        <result property="preCompensatedTxName" column="pre_compensated_tx"/>
         <result property="triggerCount" column="trigger_count"/>
         <result property="nextTriggerTime" column="next_trigger_time"/>
         <result property="createTime" column="create_time"/>
@@ -43,7 +43,7 @@
         `create_time`,`expire_time`,`modify_time`)
         VALUES
         (#{appName},#{bizName},#{bizId},#{status},
-        #{currentTx},#{preExecutedTx},#{preCompensatedTx},
+        #{currentTxName},#{preExecutedTxName},#{preCompensatedTxName},
         #{triggerCount},#{nextTriggerTime},
         #{createTime},#{expireTime},#{modifyTime})
     </insert>
@@ -54,14 +54,14 @@
             <if test="status != null">
                 `status` = #{status},
             </if>
-            <if test="currentTx != null">
-                `current_tx` = #{currentTx},
+            <if test="currentTxName != null">
+                `current_tx` = #{currentTxName},
             </if>
-            <if test="preExecutedTx != null">
-                `pre_executed_tx` = #{preExecutedTx},
+            <if test="preExecutedTxName != null">
+                `pre_executed_tx` = #{preExecutedTxName},
             </if>
-            <if test="preCompensatedTx != null">
-                `pre_compensated_tx` = #{preCompensatedTx},
+            <if test="preCompensatedTxName != null">
+                `pre_compensated_tx` = #{preCompensatedTxName},
             </if>
             <if test="nextTriggerTime != null">
                 `next_trigger_time` = #{nextTriggerTime},

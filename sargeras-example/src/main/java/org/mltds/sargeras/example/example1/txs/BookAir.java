@@ -11,13 +11,13 @@ public class BookAir implements SagaTx {
     public SagaTxStatus execute(SagaContext context) {
         // 预约飞机成功，对方返回一个飞机预约单号
         String bookAirOrderNo = "air789";
-        context.savePersistentInfo(AIR_ORDER_NO, bookAirOrderNo);
+        context.saveInfo(AIR_ORDER_NO, bookAirOrderNo);
         return SagaTxStatus.SUCCESS;
     }
 
     @Override
     public SagaTxStatus compensate(SagaContext context) {
-        String bookAirOrderNo = context.getPersistentInfo(AIR_ORDER_NO, String.class);
+        String bookAirOrderNo = context.loadInfo(AIR_ORDER_NO, String.class);
         // 用这个 bookAirOrderNo 取消预定
         return SagaTxStatus.SUCCESS;
     }

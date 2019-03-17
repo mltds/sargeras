@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.mltds.sargeras.api.spi.SagaBean;
 import org.mltds.sargeras.api.spi.SagaBeanFactory;
 import org.mltds.sargeras.exception.SagaException;
+import org.mltds.sargeras.exception.SagaNotFoundException;
 import org.mltds.sargeras.manager.Manager;
 import org.mltds.sargeras.repository.Repository;
 import org.mltds.sargeras.serialize.Serialize;
@@ -49,7 +50,11 @@ public class SagaApplication {
     }
 
     public static Saga getSaga(String keyName) {
-        return sagas.get(keyName);
+        Saga saga = sagas.get(keyName);
+        if (saga == null) {
+            throw new SagaNotFoundException(keyName);
+        }
+        return saga;
     }
 
     public static Saga getSaga(String appName, String bizName) {

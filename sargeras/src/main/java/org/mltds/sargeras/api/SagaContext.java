@@ -1,9 +1,9 @@
 package org.mltds.sargeras.api;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.mltds.sargeras.repository.Repository;
+import org.mltds.sargeras.utils.Utils;
 
 /**
  * {@link SagaContext} 在JVM中的生命周期是线程级别的。<br/>
@@ -18,246 +18,197 @@ public class SagaContext {
     private static final String BIZ_RESULT_KEY = "BIZ_RESULT";
 
     private Saga saga;
-
-    private Long id;
-
-    private String bizId;
-    private Object bizParam;
-    private Object bizResult;
-
-    private SagaStatus status;
+    private SagaContextBase base;
 
     private Class<? extends SagaTx> currentTx;
     private Class<? extends SagaTx> preExecutedTx;
     private Class<? extends SagaTx> preCompensatedTx;
 
-    /**
-     * 每次执行的id, 伴随着 Context 对象的生命周期，不需要存储<br/>
-     * 比如第一次执行，triggerId 为 A ，返回处理中后挂起，过段时间第二次执行的时候为 B 。<br/>
-     */
-    private transient String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-    /**
-     * 触发执行次数，首次执行记为1，每次轮询重试+1
-     */
-    private int triggerCount;
-    /**
-     * 当遇到处理中的情况时，期望下一次轮询重试的触发时间。
-     */
-    private Date nextTriggerTime;
-
-    /**
-     * 创建时间
-     */
-    private Date createTime;
-
-    /**
-     * 过期时间，过期时间，创建时间加业务超时时间
-     */
-    private Date expireTime;
-
-    /**
-     * 最新修改时间
-     */
-    private Date modifyTime;
-
-    private Map<String, Object> transientInfo = new HashMap<>();
-
-    private AtomicBoolean locked = new AtomicBoolean(false);
+    private boolean lock = false;
+    private Map<String, Object> persistentInfoCache = new HashMap<>();
 
     private Repository repository = SagaApplication.getRepository();
 
-    public SagaContext(Saga saga) {
-        this.saga = saga;
+    private SagaContext() {
+
+    }
+
+    public static SagaContext newContext(Saga saga, String bizId) {
+
+        SagaContext context = new SagaContext();
+        context.saga = saga;
+
+        SagaContextBase base = new SagaContextBase();
+        base.setAppName(saga.getAppName());
+        base.setBizName(saga.getBizName());
+        base.setBizId(bizId);
+        base.setStatus(SagaStatus.INIT);
+
+        String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+        base.setTriggerId(triggerId);
+        base.setTriggerCount(0);
+
+        Calendar now = Calendar.getInstance();
+        base.setNextTriggerTime(now.getTime());
+        now.add(Calendar.SECOND, saga.getBizTimeout());
+
+        now = Calendar.getInstance();
+        int bizTimeout = saga.getBizTimeout();
+        now.add(Calendar.SECOND, bizTimeout);
+        base.setExpireTime(now.getTime());
+
+        context.base = base;
+
+        return context;
+    }
+
+    public static SagaContext loadContext(String appName, String bizName, String bizId) {
+        SagaContext context = new SagaContext();
+
+        Repository repository = SagaApplication.getRepository();
+        SagaContextBase sagaContextBase = repository.loadContext(appName, bizName, bizId);
+
+        String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+        sagaContextBase.setTriggerId(triggerId);
+        context.base = sagaContextBase;
+
+        Saga saga = SagaApplication.getSaga(appName, bizName);
+        context.saga = saga;
+
+        return context;
+    }
+
+    public static SagaContext loadContext(long contextId) {
+        SagaContext context = new SagaContext();
+
+        Repository repository = SagaApplication.getRepository();
+        SagaContextBase sagaContextBase = repository.loadContext(contextId);
+
+        String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+        sagaContextBase.setTriggerId(triggerId);
+
+        context.base = sagaContextBase;
+
+        Saga saga = SagaApplication.getSaga(context.getAppName(), context.getBizName());
+        context.saga = saga;
+
+        return context;
+    }
+
+    public void saveAndLock() {
+        long id = repository.saveContextAndLock(base, saga.getLockTimeout());
+        lock = true;
+        base.setId(id);
     }
 
     public Saga getSaga() {
         return saga;
     }
 
-    public Long getId() {
-        return this.id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTriggerId() {
-        return triggerId;
-    }
-
-    public SagaStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(SagaStatus status) {
-        this.status = status;
-    }
-
     public void saveStatus(SagaStatus status) {
-        setStatus(status);
-        repository.saveContextStatus(this.id, status);
-    }
-
-    public String getBizId() {
-        return this.bizId;
-    }
-
-    public void setBizId(String bizId) {
-        this.bizId = bizId;
+        repository.saveContextStatus(base.getId(), status);
+        base.setStatus(status);
     }
 
     @SuppressWarnings("unchecked")
     public <T> T getBizParam(Class<T> t) {
-        if (bizParam != null) {
-            return (T) bizParam;
-        }
-        return getPersistentInfo(BIZ_PARAM_KEY, t);
-    }
-
-    public void setBizParam(Object bizParam) {
-        this.bizParam = bizParam;
+        return loadInfo(BIZ_PARAM_KEY, t);
     }
 
     public void saveBizParam(Object bizParam) {
-        setBizParam(bizParam);
-        savePersistentInfo(BIZ_PARAM_KEY, bizParam);
+        saveInfo(BIZ_PARAM_KEY, bizParam);
     }
 
     @SuppressWarnings("unchecked")
     public <T> T getBizResult(Class<T> t) {
-        if (bizResult != null) {
-            return (T) bizResult;
-        }
-        return getPersistentInfo(BIZ_RESULT_KEY, t);
-    }
-
-    public void setBizResult(Object bizResult) {
-        this.bizResult = bizResult;
+        return loadInfo(BIZ_RESULT_KEY, t);
     }
 
     public void saveBizResult(Object bizResult) {
-        setBizResult(bizResult);
-        savePersistentInfo(BIZ_RESULT_KEY, bizResult);
+        saveInfo(BIZ_RESULT_KEY, bizResult);
     }
 
-    public Object putTransientInfo(String key, Object value) {
-        return transientInfo.put(key, value);
+    public void saveInfo(String key, Object value) {
+        repository.saveContextInfo(base.getId(), key, value);
+        persistentInfoCache.put(key, value);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getTransientCache(String key, Class<T> cls) {
-        return (T) transientInfo.get(key);
-    }
-
-    public void savePersistentInfo(String key, Object value) {
-        Repository repository = SagaApplication.getRepository();
-        repository.saveContextInfo(id, key, value);
-    }
-
-    public <T> T getPersistentInfo(String key, Class<T> cls) {
-        return repository.loadContextInfo(id, key, cls);
+    public <T> T loadInfo(String key, Class<T> cls) {
+        if (persistentInfoCache.containsKey(key)) {
+            return (T) persistentInfoCache.get(key);
+        } else {
+            T v = repository.loadContextInfo(base.getId(), key, cls);
+            persistentInfoCache.put(key, v);
+            return v;
+        }
     }
 
     public Class<? extends SagaTx> getCurrentTx() {
+        if (currentTx == null && base.getCurrentTxName() != null) {
+            Class cls = Utils.loadClass(base.getCurrentTxName());
+            this.currentTx = cls;
+        }
         return currentTx;
     }
 
-    public void setCurrentTx(Class<? extends SagaTx> currentTx) {
+    public void saveCurrentTx(Class<? extends SagaTx> currentTx) {
+        String name = currentTx.getName();
+        repository.saveCurrentTx(base.getId(), name);
+        base.setCurrentTxName(name);
         this.currentTx = currentTx;
     }
 
-    public void saveCurrentTx(Class<? extends SagaTx> currentTx) {
-        setCurrentTx(currentTx);
-        repository.saveCurrentTx(this.id, currentTx);
-    }
-
     public Class<? extends SagaTx> getPreExecutedTx() {
+        if (preExecutedTx == null && base.getPreExecutedTxName() != null) {
+            Class cls = Utils.loadClass(base.getPreExecutedTxName());
+            this.preExecutedTx = cls;
+        }
         return preExecutedTx;
     }
 
-    public void setPreExecutedTx(Class<? extends SagaTx> preExecutedTx) {
-        this.preExecutedTx = preExecutedTx;
-    }
-
     public void savePreExecutedTx(Class<? extends SagaTx> preExecutedTx) {
-        setPreExecutedTx(preExecutedTx);
-        repository.savePreExecutedTx(this.id, preExecutedTx);
+        String name = preExecutedTx.getName();
+        repository.savePreExecutedTx(base.getId(), name);
+        base.setPreExecutedTxName(name);
+        this.preExecutedTx = preExecutedTx;
+
     }
 
     public Class<? extends SagaTx> getPreCompensatedTx() {
+        if (preCompensatedTx == null && base.getPreCompensatedTxName() != null) {
+            Class cls = Utils.loadClass(base.getPreCompensatedTxName());
+            this.preCompensatedTx = cls;
+        }
         return preCompensatedTx;
     }
 
-    public void setPreCompensatedTx(Class<? extends SagaTx> preCompensatedTx) {
-        this.preCompensatedTx = preCompensatedTx;
-    }
-
     public void savePreCompensatedTx(Class<? extends SagaTx> preCompensatedTx) {
-        setPreCompensatedTx(preCompensatedTx);
-        repository.savePreCompensatedTx(this.id, preCompensatedTx);
-    }
-
-    public int getTriggerCount() {
-        return triggerCount;
-    }
-
-    public void setTriggerCount(int triggerCount) {
-        this.triggerCount = triggerCount;
-    }
-
-    public Date getNextTriggerTime() {
-        return nextTriggerTime;
-    }
-
-    public void setNextTriggerTime(Date nextTriggerTime) {
-        this.nextTriggerTime = nextTriggerTime;
-    }
-
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
-
-    public Date getExpireTime() {
-        return expireTime;
-    }
-
-    public void setExpireTime(Date expireTime) {
-        this.expireTime = expireTime;
-    }
-
-    public Date getModifyTime() {
-        return modifyTime;
-    }
-
-    public void setModifyTime(Date modifyTime) {
-        this.modifyTime = modifyTime;
+        String name = preCompensatedTx.getName();
+        repository.savePreCompensatedTx(base.getId(), name);
+        base.setPreCompensatedTxName(name);
+        this.preCompensatedTx = preCompensatedTx;
     }
 
     /**
      * 将触发次数+1，并保存到存储中。
-     * 
+     *
      * @return
      */
-    public int incrementTriggerCount() {
-        repository.incrementTriggerCount(id);
-        triggerCount++;
-        return triggerCount;
+    public void incrementTriggerCount() {
+        repository.incrementTriggerCount(base.getId());
+        base.setTriggerCount(base.getTriggerCount() + 1);
     }
 
     /**
      * 计算下一次的触发时间，并保存到存储中。
-     * 
+     *
      * @return
      */
     public Date saveNextTriggerTime() {
         Date nextTriggerTime = calculationNextTriggerTime();
-        repository.saveNextTriggerTime(id, nextTriggerTime);
-        this.nextTriggerTime = nextTriggerTime;
+        repository.saveNextTriggerTime(base.getId(), nextTriggerTime);
+        base.setNextTriggerTime(nextTriggerTime);
         return nextTriggerTime;
     }
 
@@ -267,6 +218,8 @@ public class SagaContext {
 
         int[] triggerInterval = saga.getTriggerInterval();
         int length = saga.getTriggerInterval().length;
+        int triggerCount = base.getTriggerCount();
+
         if (triggerCount <= 0) {
             interval = triggerInterval[0];
         } else if (triggerCount < length) {
@@ -286,34 +239,81 @@ public class SagaContext {
      * @return true 为获取锁成功；false 为失败
      */
     public boolean lock() {
-        if (isLocked()) {
+        if (this.lock) {
             return true;
         } else {
             Integer lockTimeout = saga.getLockTimeout();
-            boolean lock = repository.lock(id, triggerId, lockTimeout);
-            locked.set(lock);
+            boolean lock = repository.lock(base.getId(), base.getTriggerId(), lockTimeout);
+            this.lock = lock;
             return lock;
         }
     }
 
     /**
      * 释放锁
-     * 
+     *
      * @return true 为释放锁成功；false为释放失败，比如持有锁超时了
      */
     public boolean unlock() {
-        if (!isLocked()) {
+        if (!this.lock) {
             return true;
         } else {
-            boolean unlock = repository.unlock(id, triggerId);
+            boolean unlock = repository.unlock(base.getId(), base.getTriggerId());
             if (unlock) {
-                locked.set(false);
+                this.lock = false;
             }
             return unlock;
         }
     }
 
-    public boolean isLocked() {
-        return locked.get();
+    /* base getter start */
+
+    /**
+     * 业务系统请勿直接使用
+     */
+    public SagaContextBase getBase() {
+        return base;
     }
+
+    public Long getId() {
+        return base.getId();
+    }
+
+    public String getAppName() {
+        return base.getAppName();
+    }
+
+    public String getBizName() {
+        return base.getBizName();
+    }
+
+    public String getBizId() {
+        return base.getBizId();
+    }
+
+    public SagaStatus getStatus() {
+        return base.getStatus();
+    }
+
+    public String getTriggerId() {
+        return base.getTriggerId();
+    }
+
+    public int getTriggerCount() {
+        return base.getTriggerCount();
+    }
+
+    public Date getNextTriggerTime() {
+        return base.getNextTriggerTime();
+    }
+
+    public Date getCreateTime() {
+        return base.getCreateTime();
+    }
+
+    public Date getExpireTime() {
+        return base.getExpireTime();
+    }
+    /* base getter end */
+
 }

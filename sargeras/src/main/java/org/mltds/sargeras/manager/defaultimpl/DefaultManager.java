@@ -1,6 +1,5 @@
 package org.mltds.sargeras.manager.defaultimpl;
 
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -20,21 +19,10 @@ public class DefaultManager implements Manager {
     @Override
     public SagaResult start(Saga saga, String bizId, Object bizParam) throws SagaContextLockFailException {
         // Build Saga Context
-        SagaContext context = new SagaContext(saga);
-        context.setBizId(bizId);
-        context.setStatus(SagaStatus.INIT);
-        context.setTriggerCount(0);
-        Calendar now = Calendar.getInstance();
+        SagaContext context = SagaContext.newContext(saga, bizId);
+        context.saveAndLock();// 保存并生成ID
 
-        context.setNextTriggerTime(now.getTime());
-
-        now.add(Calendar.SECOND, saga.getBizTimeout());
-        Date expireTime = now.getTime();
-        context.setExpireTime(expireTime);
-
-        repository.saveContextAndLock(context);// 保存并生成ID
-
-        context.saveBizParam(bizParam);// 需要先有 ContextId 才能 Save
+        context.saveBizParam(bizParam);//
 
         // Run
         return run(context);
@@ -42,15 +30,15 @@ public class DefaultManager implements Manager {
 
     @Override
     public SagaResult restart(Saga saga, String bizId) throws SagaContextLockFailException {
-        SagaContext context = repository.loadContext(saga.getAppName(), saga.getBizName(), bizId);
+        SagaContext context = SagaContext.loadContext(saga.getAppName(), saga.getBizName(), bizId);
+
         // Run
         return run(context);
     }
 
     @Override
     public void pollRetry(long contextId) {
-
-        SagaContext context = repository.loadContext(contextId);
+        SagaContext context = SagaContext.loadContext(contextId);
         boolean lock = context.lock();
         if (!lock) {
             return; // 获取锁失败，放弃执行
