@@ -44,7 +44,7 @@ public class BookHotel implements SagaTx {
 
     @Override
     public SagaTxStatus compensate(SagaContext context) {
-        String bookHotelOrderNo = context.loadInfo(HOTEL_ORDER_NO, String.class);
+        String bookHotelOrderNo = context.getInfo(HOTEL_ORDER_NO, String.class);
         // 用这个 bookHotelOrderNo 取消预定
         return SagaTxStatus.SUCCESS;
     }

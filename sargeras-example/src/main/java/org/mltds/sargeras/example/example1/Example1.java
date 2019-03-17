@@ -31,7 +31,7 @@ public class Example1 {
 
         init();
 
-        service();
+        book();
     }
 
     public static void init() {
@@ -45,9 +45,11 @@ public class Example1 {
                 .build();
 
         SagaLauncher.launch(); // 需要先 Build Saga
+
+
     }
 
-    public static void service() {
+    public static void book() {
 
         // 业务订单ID，唯一且必须先生成。
         String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
@@ -68,6 +70,8 @@ public class Example1 {
 
         logger.info(JSON.toJSONString(result, true));
 
+//        Runtime.getRuntime().exit(0);
+
     }
 
     public static void testTimeConsuming() {
@@ -75,14 +79,14 @@ public class Example1 {
         int count = 100;
         long t1 = System.currentTimeMillis();
         for (int i = 0; i < count; i++) {
-            service();
+            book();
         }
         long t2 = System.currentTimeMillis();
         logger.info("运行{}次，总计耗时{}毫秒，平均耗时{}毫秒。", count, t2 - t1, (t2 - t1) / count);
 
     }
 
-    public static void testRollretry() throws InterruptedException {
+    public static void testPollRetry() throws InterruptedException {
 
         Thread.sleep(1000 * 60 * 60);
 

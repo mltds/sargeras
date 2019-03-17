@@ -18,7 +18,7 @@ public class BookCar implements SagaTx {
 
     @Override
     public SagaTxStatus compensate(SagaContext context) {
-        String bookCarOrderNo = context.loadInfo(CAR_ORDER_NO, String.class);
+        String bookCarOrderNo = context.getInfo(CAR_ORDER_NO, String.class);
         // 用这个 bookCarOrderNo 取消预定
         return SagaTxStatus.SUCCESS;
     }

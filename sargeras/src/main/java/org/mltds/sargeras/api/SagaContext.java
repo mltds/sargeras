@@ -25,7 +25,7 @@ public class SagaContext {
     private Class<? extends SagaTx> preCompensatedTx;
 
     private boolean lock = false;
-    private Map<String, Object> persistentInfoCache = new HashMap<>();
+    private Map<String, Object> infoCache = new HashMap<>();
 
     private Manager manager = SagaApplication.getRepository();
 
@@ -66,14 +66,13 @@ public class SagaContext {
         SagaContext context = new SagaContext();
 
         Manager manager = SagaApplication.getRepository();
-        SagaContextBase sagaContextBase = manager.loadContext(appName, bizName, bizId);
+        SagaContextBase base = manager.loadContext(appName, bizName, bizId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        sagaContextBase.setTriggerId(triggerId);
-        context.base = sagaContextBase;
+        base.setTriggerId(triggerId);
+        context.base = base;
 
-        Saga saga = SagaApplication.getSaga(appName, bizName);
-        context.saga = saga;
+        context.saga = SagaApplication.getSaga(appName, bizName);
 
         return context;
     }
@@ -82,15 +81,14 @@ public class SagaContext {
         SagaContext context = new SagaContext();
 
         Manager manager = SagaApplication.getRepository();
-        SagaContextBase sagaContextBase = manager.loadContext(contextId);
+        SagaContextBase base = manager.loadContext(contextId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        sagaContextBase.setTriggerId(triggerId);
+        base.setTriggerId(triggerId);
 
-        context.base = sagaContextBase;
+        context.base = base;
 
-        Saga saga = SagaApplication.getSaga(context.getAppName(), context.getBizName());
-        context.saga = saga;
+        context.saga = SagaApplication.getSaga(context.getAppName(), context.getBizName());
 
         return context;
     }
@@ -112,7 +110,7 @@ public class SagaContext {
 
     @SuppressWarnings("unchecked")
     public <T> T getBizParam(Class<T> t) {
-        return loadInfo(BIZ_PARAM_KEY, t);
+        return getInfo(BIZ_PARAM_KEY, t);
     }
 
     public void saveBizParam(Object bizParam) {
@@ -121,7 +119,7 @@ public class SagaContext {
 
     @SuppressWarnings("unchecked")
     public <T> T getBizResult(Class<T> t) {
-        return loadInfo(BIZ_RESULT_KEY, t);
+        return getInfo(BIZ_RESULT_KEY, t);
     }
 
     public void saveBizResult(Object bizResult) {
@@ -130,24 +128,24 @@ public class SagaContext {
 
     public void saveInfo(String key, Object value) {
         manager.saveContextInfo(base.getId(), key, value);
-        persistentInfoCache.put(key, value);
+        infoCache.put(key, value);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T loadInfo(String key, Class<T> cls) {
-        if (persistentInfoCache.containsKey(key)) {
-            return (T) persistentInfoCache.get(key);
+    public <T> T getInfo(String key, Class<T> cls) {
+        if (infoCache.containsKey(key)) {
+            return (T) infoCache.get(key);
         } else {
             T v = manager.loadContextInfo(base.getId(), key, cls);
-            persistentInfoCache.put(key, v);
+            infoCache.put(key, v);
             return v;
         }
     }
 
+    @SuppressWarnings("unchecked")
     public Class<? extends SagaTx> getCurrentTx() {
         if (currentTx == null && base.getCurrentTxName() != null) {
-            Class cls = Utils.loadClass(base.getCurrentTxName());
-            this.currentTx = cls;
+            this.currentTx = (Class<? extends SagaTx>) Utils.loadClass(base.getCurrentTxName());
         }
         return currentTx;
     }
@@ -159,10 +157,10 @@ public class SagaContext {
         this.currentTx = currentTx;
     }
 
+    @SuppressWarnings("unchecked")
     public Class<? extends SagaTx> getPreExecutedTx() {
         if (preExecutedTx == null && base.getPreExecutedTxName() != null) {
-            Class cls = Utils.loadClass(base.getPreExecutedTxName());
-            this.preExecutedTx = cls;
+            this.preExecutedTx = (Class<? extends SagaTx>) Utils.loadClass(base.getPreExecutedTxName());
         }
         return preExecutedTx;
     }
@@ -175,10 +173,10 @@ public class SagaContext {
 
     }
 
+    @SuppressWarnings("unchecked")
     public Class<? extends SagaTx> getPreCompensatedTx() {
         if (preCompensatedTx == null && base.getPreCompensatedTxName() != null) {
-            Class cls = Utils.loadClass(base.getPreCompensatedTxName());
-            this.preCompensatedTx = cls;
+            this.preCompensatedTx = (Class<? extends SagaTx>) Utils.loadClass(base.getPreCompensatedTxName());
         }
         return preCompensatedTx;
     }
@@ -192,8 +190,6 @@ public class SagaContext {
 
     /**
      * 将触发次数+1，并保存到存储中。
-     *
-     * @return
      */
     public void incrementTriggerCount() {
         manager.incrementTriggerCount(base.getId());
@@ -202,8 +198,8 @@ public class SagaContext {
 
     /**
      * 计算下一次的触发时间，并保存到存储中。
-     *
-     * @return
+     * 
+     * @return 下一次的触发时间
      */
     public Date saveNextTriggerTime() {
         Date nextTriggerTime = calculationNextTriggerTime();
@@ -212,9 +208,9 @@ public class SagaContext {
         return nextTriggerTime;
     }
 
-    public Date calculationNextTriggerTime() {
+    private Date calculationNextTriggerTime() {
 
-        int interval = 0;
+        int interval;
 
         int[] triggerInterval = saga.getTriggerInterval();
         int length = saga.getTriggerInterval().length;
@@ -267,14 +263,6 @@ public class SagaContext {
     }
 
     /* base getter start */
-
-    /**
-     * 业务系统请勿直接使用
-     */
-    public SagaContextBase getBase() {
-        return base;
-    }
-
     public Long getId() {
         return base.getId();
     }

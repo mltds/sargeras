@@ -15,9 +15,9 @@ public class Summary implements SagaTx {
 
         String bizId = context.getBizId();
         FamilyMember member = context.getBizParam(FamilyMember.class);
-        String carOrderNo = context.loadInfo(BookCar.CAR_ORDER_NO, String.class);
-        String airOrderNo = context.loadInfo(BookAir.AIR_ORDER_NO, String.class);
-        String hotelOrderNo = context.loadInfo(BookHotel.HOTEL_ORDER_NO, String.class);
+        String carOrderNo = context.getInfo(BookCar.CAR_ORDER_NO, String.class);
+        String airOrderNo = context.getInfo(BookAir.AIR_ORDER_NO, String.class);
+        String hotelOrderNo = context.getInfo(BookHotel.HOTEL_ORDER_NO, String.class);
 
         Result result = new Result();
 
