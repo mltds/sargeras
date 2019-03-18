@@ -7,9 +7,9 @@ import java.util.concurrent.ThreadFactory;
 
 import org.mltds.sargeras.api.SagaApplication;
 import org.mltds.sargeras.api.SagaConfig;
-import org.mltds.sargeras.spi.service.Service;
-import org.mltds.sargeras.spi.pollretry.PollRetry;
 import org.mltds.sargeras.spi.manager.Manager;
+import org.mltds.sargeras.spi.pollretry.PollRetry;
+import org.mltds.sargeras.spi.service.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,8 +19,17 @@ import org.slf4j.LoggerFactory;
 public class DefaultPollRetry implements PollRetry {
 
     public static final String POLLRETRY_PREFIX = "pollretry.default.";
+    /**
+     * 重试线程数
+     */
     public static final String POLLRETRY_NTHREADS = POLLRETRY_PREFIX + "nthreads";
+    /**
+     * 每批获取的需要补偿的条数
+     */
     public static final String POLLRETRY_LIMIT = POLLRETRY_PREFIX + "limit";
+    /**
+     * 批次之间的时间间隔
+     */
     public static final String POLLRETRY_INTERVAL = POLLRETRY_PREFIX + "interval";
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultPollRetry.class);
@@ -73,7 +82,7 @@ public class DefaultPollRetry implements PollRetry {
                 }
 
                 try {
-                    Thread.sleep(interval * 1000);// 转换成秒
+                    Thread.sleep(interval * 1000);// 转换成毫秒
                 } catch (Exception e) {
                 }
             }

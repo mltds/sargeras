@@ -49,7 +49,6 @@ public class RdbmsManager implements Manager {
         lock(id, context.getTriggerId(), lockTimeout);
 
         return id;
-
     }
 
     @Override
@@ -177,17 +176,21 @@ public class RdbmsManager implements Manager {
                 contextLockDO = newLock(id, triggerId, timeoutSec);
                 contextLockMapper.insert(contextLockDO);
                 return true;
+            } else if (triggerId.equals(contextLockDO.getTriggerId())) {
+                Date date = calExpireTime(timeoutSec);
+                int update = contextLockMapper.update(id, triggerId, date);
+                return update > 0;
             } else {
                 Calendar c = Calendar.getInstance();
                 boolean after = c.getTime().after(contextLockDO.getExpireTime());
                 if (after) {
-                    int delete = contextLockMapper.delete(id, contextLockDO.gettriggerId());
-                    if (delete <= 0) {
-                        return false;
-                    } else {
+                    int delete = contextLockMapper.delete(id, contextLockDO.getTriggerId());
+                    if (delete > 0) {
                         contextLockDO = newLock(id, triggerId, timeoutSec);
                         contextLockMapper.insert(contextLockDO);
                         return true;
+                    } else {
+                        return false;
                     }
                 } else {
                     return false;
@@ -201,15 +204,21 @@ public class RdbmsManager implements Manager {
     private ContextLockDO newLock(long id, String triggerId, int timeoutSec) {
         ContextLockDO contextLockDO = new ContextLockDO();
         contextLockDO.setContextId(id);
-        contextLockDO.settriggerId(triggerId);
+        contextLockDO.setTriggerId(triggerId);
 
         Calendar c = Calendar.getInstance();
         contextLockDO.setCreateTime(c.getTime());
 
-        c.add(Calendar.SECOND, timeoutSec);
-        contextLockDO.setExpireTime(c.getTime());
+        Date date = calExpireTime(timeoutSec);
+        contextLockDO.setExpireTime(date);
 
         return contextLockDO;
+    }
+
+    private Date calExpireTime(int timeout) {
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.SECOND, timeout);
+        return c.getTime();
     }
 
     @Override
@@ -220,7 +229,7 @@ public class RdbmsManager implements Manager {
             if (contextLockDO == null) {
                 return false;
             } else {
-                if (contextLockDO.gettriggerId().equals(triggerId)) {
+                if (contextLockDO.getTriggerId().equals(triggerId)) {
                     int delete = contextLockMapper.delete(id, triggerId);
                     return delete > 0;
                 } else {
@@ -228,7 +237,7 @@ public class RdbmsManager implements Manager {
                 }
             }
         } catch (Exception e) {
-            logger.warn("操作数据库释放锁失败ContextId:{},triggerId:{}", new Object[] { id, triggerId }, e);
+            logger.warn("操作数据库释放锁失败ContextId:{" + id + "},triggerId:{" + triggerId + "}", e);
             return false;
         }
     }

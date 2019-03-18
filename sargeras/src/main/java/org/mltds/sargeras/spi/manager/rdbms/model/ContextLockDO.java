@@ -29,11 +29,11 @@ public class ContextLockDO {
         this.contextId = contextId;
     }
 
-    public String gettriggerId() {
+    public String getTriggerId() {
         return triggerId;
     }
 
-    public void settriggerId(String triggerId) {
+    public void setTriggerId(String triggerId) {
         this.triggerId = triggerId;
     }
 
