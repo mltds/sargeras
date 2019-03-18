@@ -10,14 +10,14 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <modules>
-        <module>sargeras-common</module>
+        <module>sargeras</module>
+        <module>sargeras-spring</module>
 
-        <module>sargeras-worker</module>
-        <module>sargeras-worker-spring</module>
-
+        <module>sargeras-rpc</module>
         <module>sargeras-server</module>
 
         <module>sargeras-example</module>
+        <module>sargeras-rpc</module>
     </modules>
 
 
@@ -40,17 +40,12 @@
             <!--sargeras-->
             <dependency>
                 <groupId>org.mltds.sargeras</groupId>
-                <artifactId>sargeras-common</artifactId>
+                <artifactId>sargeras</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.mltds.sargeras</groupId>
-                <artifactId>sargeras-worker</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mltds.sargeras</groupId>
-                <artifactId>sargeras-worker-spring</artifactId>
+                <artifactId>sargeras-spring</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <!--sargeras-server-->

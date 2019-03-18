@@ -7,7 +7,7 @@ import java.util.List;
 import org.apache.commons.beanutils.BeanUtils;
 import org.mltds.sargeras.common.core.SagaContextBase;
 import org.mltds.sargeras.common.core.SagaStatus;
-import org.mltds.sargeras.common.exception.SagaException;
+import org.mltds.sargeras.api.exception.SagaException;
 import org.mltds.sargeras.server.dal.mapper.ContextInfoMapper;
 import org.mltds.sargeras.server.dal.mapper.ContextLockMapper;
 import org.mltds.sargeras.server.dal.mapper.ContextMapper;
