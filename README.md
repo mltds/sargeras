@@ -10,7 +10,15 @@
 
 ## 快速启动
 
-###### 假设依赖默认实现
+###### 方案的选择
+目前 Sargeras 有两个版本 0.x.x（master）及 1.x.x（server-model） 
+ * 0.x.x（master）  
+ 这个版本是以jar包形式嵌入到业务应用系统中并直连关系型数据库（RDBMS, 例如MySQL）做管理，简单实用，方便学习研究或小公司/团队使用。
+ * 1.x.x（server-model）
+ 这个版本是集中式管理，业务系统需要连接一个远程的Saga管理中心。目前还在编写中，更详细介绍可以切换到 server-model 分支查看。
+
+
+###### 0.x.x（master）快速启动
  1. 添加 Maven 依赖到系统中
     ```xml
     <dependency>
@@ -21,7 +29,7 @@
     ```
  
  1. 需要一个关系型数据库，支持 JDBC 的，例如 MySQL ，执行 init.sql 脚本。
- 1. 配置文件一枚，命名为：sargeras.properties ，放在 classpath 目录下。（参见 Example 模块的配置）
+ 1. 配置文件一枚，命名为：sargeras.properties ，放在 classpath 目录下。（参见 Example 模块的 sargeras.properties）
     > manager.rdbms.datasource.url=jdbc:mysql://mydb.com:3306/sargeras  
       manager.rdbms.datasource.username=sunyi  
       manager.rdbms.datasource.password=sunyi
@@ -63,7 +71,6 @@
  
  
 
-
 ## 详细介绍
 
 #### 框架理念
@@ -97,10 +104,9 @@ Saga 就是这样的一个框架，用来帮助你解决一个长链路流程的
 
 * SagaTxStatus  
 是控制流程的关键因素，Sargeras框架会根据返回的 SagaTxStatus 决定流程的去向，具体有以下几种状态
-    * SUCCESS：成功，将会进行下一个事务节点的执行/补偿
-    * PROCESSING：处理中，流程挂起，计算下一次期望重试的时间点
-    * EXE_FAIL_TO_COMP：执行失败，将进入补偿流程
-    * COMP_FAIL_TO_FINAL：补偿失败，流程终止
+    * SUCCESS：成功，执行或补偿下一个 TX
+    * PROCESSING：处理中，流程挂起，计算下一次期望重试的时间点，等待轮询重试或手动触发。
+    * FAILURE：失败，如果是执行（Execute）失败，则转为补偿（Compensate）流程；如果是补偿失败，则流程终止。
     
 * SagaStatus  
 是这个笔业整体状态的体现，具体有以下几种状态
@@ -126,8 +132,9 @@ Sargeras 的启动器，正常流程是先 Build 需要的 Saga，然后使用�
 * SagaBean/SagaBeanFactory  
 是 Sargeras 的 SPI ，共有几种类型，并提供了默认实现
     * Service 用于启动/重新启动等一个 Saga
-    * Manager 用于管理 SagaContext 相关信息
     * PollRetry 用于轮询重试处理中的业务
+    * Manager 用于管理执行过程中相关的操作
+    
 
 * SagaListener  
 用于监听 Saga 的执行情况，在关键的节点会收到通知，里面有很多通知方法，具体可以到类里面查看，提供了2个默认实现
@@ -139,14 +146,10 @@ Sargeras 的启动器，正常流程是先 Build 需要的 Saga，然后使用�
 
 
 #### 没想清楚的地方
- * Saga的核心，应该是嵌入在业务系统里还是一个独立系统？  
-    目前SNAPSHOT版本是嵌入在业务系统里，比较简单、稳定、实用。但弊端也很明显，不容易升级维护，不方便做监控，对业务系统有入侵。 当前的想法是提供两种实现，一种集成在业务系统里，一种有统一的管理中心。
  * Listener 是否应该有多个？  
     如果只允许有一个Listener，那么 onError 方法应当返回状态，现在默认为处理中
- * 当某个 TX execute 返回 EXE_FAIL_TO_COMP 时，这个 TX 是否需要补偿？  
+ * 当某个 TX execute 返回 FAILURE 时，这个 TX 是否需要补偿？  
     现在是补偿的，选择补偿的原因是考虑到，虽然执行失败了，但可能还是有需要消除一些影响。
- * 轮询重试次数、间隔频率该如何控制？  
-    如果下游业务宕机了，可能很多重试是无用的，可以定义轮询间隔，比如 {1,5,10,20.30,60} 依次作为轮询间隔
  * 如果因为发布，导致代码里的TX变化了，可能无法向下兼容，怎么办？  
     现在的考虑是向下兼容要业务系统考虑，如果某个流程在重试的时候，发现完全不能进行下去，比如找不到重试起始点的TX则尽量报错。
     
@@ -161,6 +164,9 @@ Sargeras 的启动器，正常流程是先 Build 需要的 Saga，然后使用�
 
 
 ## 版本记录
+
+###### 0.3.0-SNAPSHOT
+* 重新定义了SPI各个组件的职责
 
 ###### 0.2.0-SNAPSHOT
 * 修改工程结构，将 parent 作为顶层，管理属性、依赖等
