@@ -3,11 +3,11 @@ package org.mltds.sargeras.example.example1;
 import java.util.UUID;
 
 import org.mltds.sargeras.api.*;
+import org.mltds.sargeras.api.listener.LogListener;
 import org.mltds.sargeras.example.example1.txs.BookAir;
 import org.mltds.sargeras.example.example1.txs.BookCar;
 import org.mltds.sargeras.example.example1.txs.BookHotel;
 import org.mltds.sargeras.example.example1.txs.Summary;
-import org.mltds.sargeras.api.listener.LogListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,13 +39,12 @@ public class Example1 {
         SagaBuilder.newBuilder(appName, bizName)// 定义一个业务
                 .addTx(new BookCar())// 订汽车
                 .addTx(new BookAir())// 订机票
-                .addTx(new BookHotel(false))// 订酒店，false为强制失败
+                .addTx(new BookHotel(true))// 订酒店，false为强制失败
                 .addTx(new Summary()) // 汇总结果
                 .addListener(new LogListener()) // 增加一些log输出方便跟踪
                 .build();
 
         SagaLauncher.launch(); // 需要先 Build Saga
-
 
     }
 

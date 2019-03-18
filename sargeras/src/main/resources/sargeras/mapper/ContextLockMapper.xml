@@ -16,11 +16,11 @@
         INSERT INTO saga_context_lock
         (context_id, trigger_id, create_time, expire_time)
         VALUES
-        (#{contextId},#{reqId},#{createTime},#{expireTime})
+        (#{contextId},#{triggerId},#{createTime},#{expireTime})
     </insert>
 
     <delete id="delete">
-        DELETE FROM saga_context_lock WHERE context_id = #{contextId} and trigger_id = #{reqId}
+        DELETE FROM saga_context_lock WHERE context_id = #{contextId} and trigger_id = #{triggerId}
     </delete>
 
     <select id="select" resultMap="ContextLockRM">
