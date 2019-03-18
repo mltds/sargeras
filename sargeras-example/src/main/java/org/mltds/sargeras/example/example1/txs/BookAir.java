@@ -17,7 +17,7 @@ public class BookAir implements SagaTx {
 
     @Override
     public SagaTxStatus compensate(SagaContext context) {
-        String bookAirOrderNo = context.getPersistentInfo(AIR_ORDER_NO, String.class);
+        String bookAirOrderNo = context.getInfo(AIR_ORDER_NO, String.class);
         // 用这个 bookAirOrderNo 取消预定
         return SagaTxStatus.SUCCESS;
     }

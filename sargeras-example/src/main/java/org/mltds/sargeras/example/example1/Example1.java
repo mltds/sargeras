@@ -2,11 +2,12 @@ package org.mltds.sargeras.example.example1;
 
 import java.util.UUID;
 
+import org.mltds.sargeras.api.*;
+import org.mltds.sargeras.api.listener.LogListener;
 import org.mltds.sargeras.example.example1.txs.BookAir;
 import org.mltds.sargeras.example.example1.txs.BookCar;
 import org.mltds.sargeras.example.example1.txs.BookHotel;
 import org.mltds.sargeras.example.example1.txs.Summary;
-import org.mltds.sargeras.api.listener.LogListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +31,7 @@ public class Example1 {
 
         init();
 
-        service();
+        book();
     }
 
     public static void init() {
@@ -43,10 +44,11 @@ public class Example1 {
                 .addListener(new LogListener()) // 增加一些log输出方便跟踪
                 .build();
 
-        SagaLauncher.launch(); // 需要先 Build Saga，否则在启动轮询重试线程后，会找不到 Saga
+        SagaLauncher.launch(); // 需要先 Build Saga
+
     }
 
-    public static void service() {
+    public static void book() {
 
         // 业务订单ID，唯一且必须先生成。
         String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
@@ -63,9 +65,11 @@ public class Example1 {
 
         // 执行业务
         SagaResult sagaResult = saga.start(bizId, member);
-        Result result = sagaResult.getBizResult(Result.class);
+        BookResult bookResult = sagaResult.getBizResult(BookResult.class);
 
-        logger.info(JSON.toJSONString(result, true));
+        logger.info(JSON.toJSONString(bookResult, true));
+
+        Runtime.getRuntime().exit(0);
 
     }
 
@@ -74,14 +78,14 @@ public class Example1 {
         int count = 100;
         long t1 = System.currentTimeMillis();
         for (int i = 0; i < count; i++) {
-            service();
+            book();
         }
         long t2 = System.currentTimeMillis();
         logger.info("运行{}次，总计耗时{}毫秒，平均耗时{}毫秒。", count, t2 - t1, (t2 - t1) / count);
 
     }
 
-    public static void testRollretry() throws InterruptedException {
+    public static void testPollRetry() throws InterruptedException {
 
         Thread.sleep(1000 * 60 * 60);
 

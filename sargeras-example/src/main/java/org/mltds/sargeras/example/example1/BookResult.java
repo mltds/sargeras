@@ -3,7 +3,7 @@ package org.mltds.sargeras.example.example1;
 /**
  * @author sunyi.
  */
-public class Result {
+public class BookResult {
 
     public boolean success;
     public String errorMessage;
