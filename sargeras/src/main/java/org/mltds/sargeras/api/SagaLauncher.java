@@ -111,7 +111,7 @@ public class SagaLauncher {
         logger.debug("Saga 初始化 BeanFactory 成功...");
     }
 
-    public static void startPollRetry() {
+    private static void startPollRetry() {
         PollRetry pollRetry = SagaApplication.getPollRetry();
         pollRetry.startPollRetry();
         logger.debug("Saga 轮询重试模块启动成功...");
