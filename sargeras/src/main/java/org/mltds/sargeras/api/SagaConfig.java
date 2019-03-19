@@ -2,8 +2,6 @@ package org.mltds.sargeras.api;
 
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.mltds.sargeras.api.exception.SagaException;
 import org.slf4j.Logger;
@@ -14,47 +12,43 @@ import org.slf4j.LoggerFactory;
  */
 public class SagaConfig {
 
-    public static final String CONFIG_FILE = "/sargeras.properties";
+    public static final String CONFIG_FILE_CUSTOMIZE = "/sargeras.properties";
     public static final String CONFIG_FILE_DEFAULT = "/sargeras/sargeras.default.properties";
 
-    public static final String FACTORY_PREFIX = "factory.";
+    public static final String SPI_FACTORY_PREFIX = "spi.factory.";
     public static final String LISTENER_LOGGER_NAME = "listener.logger.name";
 
-    /* manager */
-    public static final String MANAGER_RDBMS_DATASOURCE = "manager.rdbms.datasource.";
-
-    /* pollretry */
-    public static final String POLLRETRY_PREFIX = "pollretry.";
-    public static final String POLLRETRY_NTHREADS = POLLRETRY_PREFIX + "nthreads";
-    public static final String POLLRETRY_LIMIT = POLLRETRY_PREFIX + "limit";
-    public static final String POLLRETRY_INTERVAL = POLLRETRY_PREFIX + "interval";
-
     private static final Logger logger = LoggerFactory.getLogger(SagaConfig.class);
-    private static Properties prop = new Properties();
+    private static Properties properties = new Properties();
 
     static {
-        load(prop, CONFIG_FILE_DEFAULT, false);
-        load(prop, CONFIG_FILE, true);// 覆盖默认配置
-
-        if (logger.isDebugEnabled()) {
-            logger.debug("加载配置信息:");
-            Set<Object> set = new TreeSet<>();
-            set.addAll(prop.keySet());
-            for (Object k : set) {
-                String key = k.toString();
-                logger.debug(key + " --- " + prop.getProperty(key));
-            }
-        }
-
+        load(CONFIG_FILE_DEFAULT, false);
+        load(CONFIG_FILE_CUSTOMIZE, true);// 覆盖默认配置
     }
 
-    private static void load(Properties prop, String file, boolean ignoreFileNX) {
+    /**
+     * 加载配置项
+     */
+    public static void load(Properties properties) {
+        if (properties == null) {
+            return;
+        }
+        SagaConfig.load(properties);
+    }
+
+    /**
+     * 加载配置文件
+     * 
+     * @param file classpath的路径
+     * @param ignoreFileNX 是否忽略文件不存在，如果为false且文件不存在会报错。
+     */
+    public static void load(String file, boolean ignoreFileNX) {
         try {
             Properties p = new Properties();
             InputStream is = SagaConfig.class.getResourceAsStream(file);
             p.load(is);
             is.close();
-            prop.putAll(p);
+
         } catch (Exception e) {
             if (ignoreFileNX) {
                 // do nothing
@@ -65,16 +59,16 @@ public class SagaConfig {
     }
 
     public static String getProperty(String key) {
-        return prop.getProperty(key);
+        return properties.getProperty(key);
     }
 
     public static String getProperty(String key, String defaultValue) {
-        return prop.getProperty(key, defaultValue);
+        return properties.getProperty(key, defaultValue);
     }
 
     public static Properties getAllProperties() {
         Properties p = new Properties();
-        p.putAll(prop);
+        p.putAll(properties);
         return p;
     }
 

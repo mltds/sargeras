@@ -2,7 +2,9 @@ package org.mltds.sargeras.api;
 
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.mltds.sargeras.api.exception.SagaException;
@@ -23,6 +25,10 @@ public class SagaLauncher {
     private static final AtomicBoolean launched = new AtomicBoolean(false);
 
     public static void launch() {
+        launch(null);
+    }
+
+    public static void launch(Properties properties) {
 
         if (launched.get()) {
             return;
@@ -35,7 +41,10 @@ public class SagaLauncher {
 
             logger.info("Saga Launch 开始启动...");
 
-            // 初始化 BeanFactory
+            // 加载配置
+            initConfig(properties);
+
+            // 初始化 SPI BeanFactory
             initBeanFactory();
 
             // 启动轮询重试
@@ -48,6 +57,23 @@ public class SagaLauncher {
 
     }
 
+    private static void initConfig(Properties properties) {
+        // 加载配置
+        SagaConfig.load(properties);
+
+        if (logger.isDebugEnabled()) {
+            Properties allProperties = SagaConfig.getAllProperties();
+            logger.debug("Saga配置信息:");
+            Set<Object> set = new TreeSet<>();
+            set.addAll(allProperties.keySet());
+            for (Object k : set) {
+                String key = k.toString();
+                logger.debug(key + "=" + allProperties.getProperty(key));
+            }
+        }
+
+    }
+
     @SuppressWarnings("unchecked")
     private static void initBeanFactory() {
         try {
@@ -56,7 +82,7 @@ public class SagaLauncher {
 
                 String key = e.getKey().toString();
 
-                if (!key.startsWith(SagaConfig.FACTORY_PREFIX)) {
+                if (!key.startsWith(SagaConfig.SPI_FACTORY_PREFIX)) {
                     continue;
                 }
 

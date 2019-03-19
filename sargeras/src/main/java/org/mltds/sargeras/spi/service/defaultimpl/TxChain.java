@@ -6,6 +6,7 @@ import org.mltds.sargeras.api.SagaContext;
 import org.mltds.sargeras.api.SagaTx;
 import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.exception.SagaException;
+import org.mltds.sargeras.api.exception.SagaIncompatibleException;
 
 public class TxChain implements SagaTx {
 
@@ -70,6 +71,11 @@ public class TxChain implements SagaTx {
             }
 
         }
+
+        if (!canExecute) {
+            // 没有找到执行TX的起始点,一般是因代码变动，新老流程不兼容导致的
+            throw new SagaIncompatibleException(context.getId());
+        }
         return txStatus;
     }
 
@@ -125,6 +131,11 @@ public class TxChain implements SagaTx {
             } else {
                 throw new SagaException("SagaTx： " + tx.getClass().getSimpleName() + " compensate 方法返回错误的状态：" + txStatus);
             }
+        }
+
+        if (!canCompensate) {
+            // 没有找到补偿TX的起始点,一般是因代码变动，新老流程不兼容导致的
+            throw new SagaIncompatibleException(context.getId());
         }
 
         return txStatus;
