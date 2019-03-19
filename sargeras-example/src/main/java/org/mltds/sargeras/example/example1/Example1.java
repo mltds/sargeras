@@ -32,6 +32,8 @@ public class Example1 {
         init();
 
         book();
+
+        Runtime.getRuntime().exit(0);
     }
 
     public static void init() {
@@ -69,7 +71,7 @@ public class Example1 {
 
         logger.info(JSON.toJSONString(bookResult, true));
 
-        Runtime.getRuntime().exit(0);
+
 
     }
 

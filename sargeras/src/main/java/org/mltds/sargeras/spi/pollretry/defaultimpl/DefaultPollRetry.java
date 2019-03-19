@@ -37,7 +37,7 @@ public class DefaultPollRetry implements PollRetry {
     @Override
     public void startPollRetry() {
 
-        int nThreads = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_NTHREADS), 1);
+        int nThreads = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_NTHREADS, "1"));
 
         final ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
 
@@ -68,8 +68,8 @@ public class DefaultPollRetry implements PollRetry {
 
                 Manager manager = SagaApplication.getManager();
                 Service service = SagaApplication.getService();
-                int limit = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_LIMIT), 100);
-                int interval = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_INTERVAL), 1);
+                int limit = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_LIMIT, "100"));
+                int interval = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_INTERVAL, "1"));
 
                 List<Long> needRetryContextList = manager.findNeedRetryContextList(limit);
 

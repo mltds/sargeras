@@ -18,7 +18,6 @@ public class SagaConfig {
     public static final String SPI_FACTORY_PREFIX = "spi.factory.";
     public static final String LISTENER_LOGGER_NAME = "listener.logger.name";
 
-    private static final Logger logger = LoggerFactory.getLogger(SagaConfig.class);
     private static Properties properties = new Properties();
 
     static {
@@ -33,7 +32,7 @@ public class SagaConfig {
         if (properties == null) {
             return;
         }
-        SagaConfig.load(properties);
+        SagaConfig.properties.putAll(properties);
     }
 
     /**
@@ -48,7 +47,7 @@ public class SagaConfig {
             InputStream is = SagaConfig.class.getResourceAsStream(file);
             p.load(is);
             is.close();
-
+            load(p);
         } catch (Exception e) {
             if (ignoreFileNX) {
                 // do nothing
