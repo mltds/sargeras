@@ -44,7 +44,7 @@ public class TxChain implements SagaTx {
             }
 
             if (!txCls.equals(currentTx)) {
-                context.saveCurrentTx(txCls);
+                context.saveCurrentTxAndParam(txCls);
             }
 
             listenerChain.beforeExecute(context, tx);
@@ -106,7 +106,7 @@ public class TxChain implements SagaTx {
             }
 
             if (!txCls.equals(currentTx)) {
-                context.saveCurrentTx(txCls);
+                context.saveCurrentTxAndParam(txCls);
             }
 
             listenerChain.beforeCompensate(context, tx);

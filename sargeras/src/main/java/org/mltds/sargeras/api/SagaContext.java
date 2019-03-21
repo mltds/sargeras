@@ -2,14 +2,18 @@ package org.mltds.sargeras.api;
 
 import java.util.*;
 
+import org.mltds.sargeras.api.model.SagaRecord;
+import org.mltds.sargeras.api.model.SagaTxRecord;
+import org.mltds.sargeras.api.model.SagaTxRecordParam;
+import org.mltds.sargeras.api.model.SagaTxRecordResult;
 import org.mltds.sargeras.spi.manager.Manager;
-import org.mltds.sargeras.utils.Utils;
 
 /**
  * {@link SagaContext} 在JVM中的生命周期是线程级别的。<br/>
  * 即当执行一个 {@link Saga} 时，会新建一个 {@link SagaContext}，当线程结束时，这个 {@link SagaContext} 对象会被失效。<br/>
  * 如果这个 {@link Saga} 并没有执行完，当 reload 再次重试时，会根据 {@link Manager} 中的信息重新构建出这个 {@link SagaContext}，但是一个全新的JVM对象。<br/>
- * 
+ * SagaContext 有个很重要的职责是维护内存数据与存储数据的一致性，这点很重要
+ *
  * @author sunyi
  */
 public class SagaContext {
@@ -17,17 +21,13 @@ public class SagaContext {
     private static final String BIZ_PARAM_KEY = "BIZ_PARAM";
     private static final String BIZ_RESULT_KEY = "BIZ_RESULT";
 
+    private static Manager manager = SagaApplication.getManager();
+
     private Saga saga;
-    private SagaContextBase base;
-
-    private Class<? extends SagaTx> currentTx;
-    private Class<? extends SagaTx> preExecutedTx;
-    private Class<? extends SagaTx> preCompensatedTx;
-
+    private SagaRecord record;
+    private List<SagaTxRecord> txRecordList;
     private boolean lock = false;
     private Map<String, Object> infoCache = new HashMap<>();
-
-    private Manager manager = SagaApplication.getManager();
 
     private SagaContext() {
 
@@ -38,26 +38,26 @@ public class SagaContext {
         SagaContext context = new SagaContext();
         context.saga = saga;
 
-        SagaContextBase base = new SagaContextBase();
-        base.setAppName(saga.getAppName());
-        base.setBizName(saga.getBizName());
-        base.setBizId(bizId);
-        base.setStatus(SagaStatus.INIT);
+        SagaRecord record = new SagaRecord();
+        record.setAppName(saga.getAppName());
+        record.setBizName(saga.getBizName());
+        record.setBizId(bizId);
+        record.setStatus(SagaStatus.INIT);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        base.setTriggerId(triggerId);
-        base.setTriggerCount(0);
+        record.setTriggerId(triggerId);
+        record.setTriggerCount(0);
 
         Calendar now = Calendar.getInstance();
-        base.setNextTriggerTime(now.getTime());
+        record.setNextTriggerTime(now.getTime());
         now.add(Calendar.SECOND, saga.getBizTimeout());
 
         now = Calendar.getInstance();
         int bizTimeout = saga.getBizTimeout();
         now.add(Calendar.SECOND, bizTimeout);
-        base.setExpireTime(now.getTime());
+        record.setExpireTime(now.getTime());
 
-        context.base = base;
+        context.record = record;
 
         return context;
     }
@@ -65,13 +65,12 @@ public class SagaContext {
     public static SagaContext loadContext(String appName, String bizName, String bizId) {
         SagaContext context = new SagaContext();
 
-        Manager manager = SagaApplication.getManager();
-        SagaContextBase base = manager.loadContext(appName, bizName, bizId);
+        SagaRecord record = manager.loadContext(appName, bizName, bizId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        base.setTriggerId(triggerId);
+        record.setTriggerId(triggerId);
 
-        context.base = base;
+        context.record = record;
 
         context.saga = SagaApplication.getSaga(appName, bizName);
 
@@ -81,13 +80,12 @@ public class SagaContext {
     public static SagaContext loadContext(long contextId) {
         SagaContext context = new SagaContext();
 
-        Manager manager = SagaApplication.getManager();
-        SagaContextBase base = manager.loadContext(contextId);
+        SagaRecord record = manager.loadContext(contextId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        base.setTriggerId(triggerId);
+        record.setTriggerId(triggerId);
 
-        context.base = base;
+        context.record = record;
 
         context.saga = SagaApplication.getSaga(context.getAppName(), context.getBizName());
 
@@ -95,9 +93,9 @@ public class SagaContext {
     }
 
     public void saveAndLock() {
-        long id = manager.saveContextAndLock(base, saga.getLockTimeout());
+        long id = manager.saveContextAndLock(record, saga.getLockTimeout());
         lock = true;
-        base.setId(id);
+        record.setId(id);
     }
 
     public Saga getSaga() {
@@ -105,107 +103,27 @@ public class SagaContext {
     }
 
     public void saveStatus(SagaStatus status) {
-        manager.saveContextStatus(base.getId(), status);
-        base.setStatus(status);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> T getBizParam(Class<T> t) {
-        return getInfo(BIZ_PARAM_KEY, t);
-    }
-
-    public void saveBizParam(Object bizParam) {
-        saveInfo(BIZ_PARAM_KEY, bizParam);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> T getBizResult(Class<T> t) {
-        return getInfo(BIZ_RESULT_KEY, t);
-    }
-
-    public void saveBizResult(Object bizResult) {
-        saveInfo(BIZ_RESULT_KEY, bizResult);
-    }
-
-    public void saveInfo(String key, Object value) {
-        manager.saveContextInfo(base.getId(), key, value);
-        infoCache.put(key, value);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> T getInfo(String key, Class<T> cls) {
-        if (infoCache.containsKey(key)) {
-            return (T) infoCache.get(key);
-        } else {
-            T v = manager.loadContextInfo(base.getId(), key, cls);
-            infoCache.put(key, v);
-            return v;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public Class<? extends SagaTx> getCurrentTx() {
-        if (currentTx == null && base.getCurrentTxName() != null) {
-            this.currentTx = (Class<? extends SagaTx>) Utils.loadClass(base.getCurrentTxName());
-        }
-        return currentTx;
-    }
-
-    public void saveCurrentTx(Class<? extends SagaTx> currentTx) {
-        String name = currentTx.getName();
-        manager.saveCurrentTx(base.getId(), name);
-        base.setCurrentTxName(name);
-        this.currentTx = currentTx;
-    }
-
-    @SuppressWarnings("unchecked")
-    public Class<? extends SagaTx> getPreExecutedTx() {
-        if (preExecutedTx == null && base.getPreExecutedTxName() != null) {
-            this.preExecutedTx = (Class<? extends SagaTx>) Utils.loadClass(base.getPreExecutedTxName());
-        }
-        return preExecutedTx;
-    }
-
-    public void savePreExecutedTx(Class<? extends SagaTx> preExecutedTx) {
-        String name = preExecutedTx.getName();
-        manager.savePreExecutedTx(base.getId(), name);
-        base.setPreExecutedTxName(name);
-        this.preExecutedTx = preExecutedTx;
-
-    }
-
-    @SuppressWarnings("unchecked")
-    public Class<? extends SagaTx> getPreCompensatedTx() {
-        if (preCompensatedTx == null && base.getPreCompensatedTxName() != null) {
-            this.preCompensatedTx = (Class<? extends SagaTx>) Utils.loadClass(base.getPreCompensatedTxName());
-        }
-        return preCompensatedTx;
-    }
-
-    public void savePreCompensatedTx(Class<? extends SagaTx> preCompensatedTx) {
-        String name = preCompensatedTx.getName();
-        manager.savePreCompensatedTx(base.getId(), name);
-        base.setPreCompensatedTxName(name);
-        this.preCompensatedTx = preCompensatedTx;
+        manager.saveContextStatus(record.getId(), status);
+        record.setStatus(status);
     }
 
     /**
      * 将触发次数+1，并保存到存储中。
      */
     public void incrementTriggerCount() {
-        manager.incrementTriggerCount(base.getId());
-        base.setTriggerCount(base.getTriggerCount() + 1);
+        manager.incrementTriggerCount(record.getId());
+        record.setTriggerCount(record.getTriggerCount() + 1);
     }
 
     /**
      * 计算下一次的触发时间，并保存到存储中。
-     * 
+     *
      * @return 下一次的触发时间
      */
     public Date saveNextTriggerTime() {
         Date nextTriggerTime = calculationNextTriggerTime();
-        manager.saveNextTriggerTime(base.getId(), nextTriggerTime);
-        base.setNextTriggerTime(nextTriggerTime);
+        manager.saveNextTriggerTime(record.getId(), nextTriggerTime);
+        record.setNextTriggerTime(nextTriggerTime);
         return nextTriggerTime;
     }
 
@@ -215,7 +133,7 @@ public class SagaContext {
 
         int[] triggerInterval = saga.getTriggerInterval();
         int length = saga.getTriggerInterval().length;
-        int triggerCount = base.getTriggerCount();
+        int triggerCount = record.getTriggerCount();
 
         if (triggerCount <= 0) {
             interval = triggerInterval[0];
@@ -240,7 +158,7 @@ public class SagaContext {
             return true;
         } else {
             Integer lockTimeout = saga.getLockTimeout();
-            boolean lock = manager.lock(base.getId(), base.getTriggerId(), lockTimeout);
+            boolean lock = manager.lock(record.getId(), record.getTriggerId(), lockTimeout);
             this.lock = lock;
             return lock;
         }
@@ -255,7 +173,7 @@ public class SagaContext {
         if (!this.lock) {
             return true;
         } else {
-            boolean unlock = manager.unlock(base.getId(), base.getTriggerId());
+            boolean unlock = manager.unlock(record.getId(), record.getTriggerId());
             if (unlock) {
                 this.lock = false;
             }
@@ -263,46 +181,93 @@ public class SagaContext {
         }
     }
 
-    /* base getter start */
-    public Long getId() {
-        return base.getId();
+    public boolean isFirstExecute() {
+        return record.getTriggerCount() <= 1;
+    }
+
+    public SagaTxRecord saveCurrentTxAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> txRecordParamList) {
+        txRecord = manager.saveCurrentTxAndParam(txRecord, txRecordParamList);
+        record.setCurrentTxRecordId(txRecord.getId());
+
+        if (txRecordList == null) {
+            txRecordList = manager.findTxRecordList(getRecordId());
+        }
+
+        txRecordList.add(txRecord);
+
+        return txRecord;
+    }
+
+    public List<SagaTxRecord> getTxRecordList() {
+        if (txRecordList == null) {
+            txRecordList = manager.findTxRecordList(getRecordId());
+        }
+
+        return Collections.unmodifiableList(txRecordList);
+
+    }
+
+    public SagaTxRecordResult getTxRecordResult(Long txRecordId) {
+        return manager.getTxRecordResult(txRecordId);
+    }
+
+    public void saveTxStatus(Long txRecordId, SagaTxStatus status) {
+        // TODO
+    }
+
+    public SagaTxRecordResult saveTxRecordResult(SagaTxRecordResult recordResult) {
+        // TODO
+        return null;
+    }
+
+
+    public List<SagaTxRecordParam> getTxRecordParam(Long txRecordId) {
+        //TODO
+        return null;
+    }
+
+    /* record getter start */
+    public Long getRecordId() {
+        return record.getId();
     }
 
     public String getAppName() {
-        return base.getAppName();
+        return record.getAppName();
     }
 
     public String getBizName() {
-        return base.getBizName();
+        return record.getBizName();
     }
 
     public String getBizId() {
-        return base.getBizId();
+        return record.getBizId();
     }
 
     public SagaStatus getStatus() {
-        return base.getStatus();
+        return record.getStatus();
     }
 
     public String getTriggerId() {
-        return base.getTriggerId();
+        return record.getTriggerId();
     }
 
     public int getTriggerCount() {
-        return base.getTriggerCount();
+        return record.getTriggerCount();
     }
 
     public Date getNextTriggerTime() {
-        return base.getNextTriggerTime();
+        return record.getNextTriggerTime();
     }
 
     public Date getCreateTime() {
-        return base.getCreateTime();
+        return record.getCreateTime();
     }
 
     public Date getExpireTime() {
-        return base.getExpireTime();
+        return record.getExpireTime();
     }
-    /* base getter end */
+
+
+    /* record getter end */
 
 }

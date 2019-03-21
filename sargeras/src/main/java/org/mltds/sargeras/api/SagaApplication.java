@@ -8,8 +8,8 @@ import org.mltds.sargeras.api.exception.SagaNotFoundException;
 import org.mltds.sargeras.spi.SagaBean;
 import org.mltds.sargeras.spi.SagaBeanFactory;
 import org.mltds.sargeras.spi.manager.Manager;
-import org.mltds.sargeras.spi.service.Service;
 import org.mltds.sargeras.spi.pollretry.PollRetry;
+import org.mltds.sargeras.spi.service.Service;
 
 /**
  * @author sunyi
@@ -20,11 +20,14 @@ public class SagaApplication {
     private static final Map<String, Saga> sagas = new ConcurrentHashMap<>();
 
     static void addSaga(Saga saga) {
-        String keyName = saga.getKeyName();
-        if (sagas.containsKey(keyName)) {
-            throw new SagaException("已经存在一个相同的Saga，同名的Saga：" + keyName);
+        synchronized (SagaApplication.class) {
+            String keyName = saga.getKeyName();
+            if (!sagas.containsKey(keyName)) {
+                sagas.put(keyName, saga);
+            } else if (!sagas.get(keyName).equals(saga)) {
+                throw new SagaException("已经存在一个相同的Saga，同名的Saga：" + keyName);
+            }
         }
-        sagas.put(keyName, saga);
     }
 
     static void addBeanFactory(Class<? extends SagaBean> beanClass, SagaBeanFactory beanFactory) {
@@ -45,6 +48,10 @@ public class SagaApplication {
         return getBean(Manager.class);
     }
 
+    public static PollRetry getPollRetry() {
+        return getBean(PollRetry.class);
+    }
+
     public static Saga getSaga(String keyName) {
         Saga saga = sagas.get(keyName);
         if (saga == null) {
@@ -57,7 +64,4 @@ public class SagaApplication {
         return getSaga(Saga.getKeyName(appName, bizName));
     }
 
-    public static PollRetry getPollRetry() {
-        return getBean(PollRetry.class);
-    }
 }

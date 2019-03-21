@@ -137,6 +137,11 @@
                 <artifactId>aspectjweaver</artifactId>
                 <version>1.8.9</version>
             </dependency>
+            <dependency>
+                <groupId>com.esotericsoftware</groupId>
+                <artifactId>reflectasm</artifactId>
+                <version>1.11.8</version>
+            </dependency>
 
 
         </dependencies>

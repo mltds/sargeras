@@ -5,9 +5,12 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.beanutils.BeanUtils;
-import org.mltds.sargeras.api.SagaContextBase;
+import org.mltds.sargeras.api.model.SagaRecord;
 import org.mltds.sargeras.api.SagaStatus;
+import org.mltds.sargeras.api.exception.SagaContextLockFailException;
 import org.mltds.sargeras.api.exception.SagaException;
+import org.mltds.sargeras.api.model.SagaTxRecord;
+import org.mltds.sargeras.api.model.SagaTxRecordParam;
 import org.mltds.sargeras.spi.manager.Manager;
 import org.mltds.sargeras.spi.manager.rdbms.mapper.ContextInfoMapper;
 import org.mltds.sargeras.spi.manager.rdbms.mapper.ContextLockMapper;
@@ -33,7 +36,7 @@ public class RdbmsManager implements Manager {
 
     @Override
     @Transaction
-    public long saveContextAndLock(SagaContextBase context, int lockTimeout) {
+    public long saveContextAndLock(SagaRecord context, int lockTimeout) {
 
         ContextDO contextDO = sagaContextToContextDO(context);
 
@@ -46,13 +49,16 @@ public class RdbmsManager implements Manager {
 
         Long id = contextDO.getId();
 
-        lock(id, context.getTriggerId(), lockTimeout);
+        boolean lock = lock(id, context.getTriggerId(), lockTimeout);
+        if (!lock) {
+            throw new SagaContextLockFailException(context.getId(), context.getTriggerId());
+        }
 
         return id;
     }
 
     @Override
-    public SagaContextBase loadContext(long contextId) {
+    public SagaRecord loadContext(long contextId) {
 
         ContextDO contextDO = contextMapper.selectById(contextId);
         if (contextDO == null) {
@@ -68,7 +74,7 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    public SagaContextBase loadContext(String appName, String bizName, String bizId) {
+    public SagaRecord loadContext(String appName, String bizName, String bizId) {
 
         ContextDO contextDO = contextMapper.selectByBiz(appName, bizName, bizId);
         if (contextDO == null) {
@@ -93,12 +99,13 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    public void saveCurrentTx(long contextId, String cls) {
+    public SagaTxRecord saveCurrentTxAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> paramList) {
         ContextDO contextDO = new ContextDO();
-        contextDO.setId(contextId);
-        contextDO.setCurrentTxName(cls);
+        contextDO.setId(txRecord);
+        contextDO.setCurrentTxName(paramList);
         contextDO.setModifyTime(new Date());
         contextMapper.updateById(contextDO);
+        return txRecord;
     }
 
     @Override
@@ -247,21 +254,21 @@ public class RdbmsManager implements Manager {
         return contextMapper.findNeedRetryContextList(new Date(), limit);
     }
 
-    private ContextDO sagaContextToContextDO(SagaContextBase sagaContextBase) {
+    private ContextDO sagaContextToContextDO(SagaRecord sagaRecord) {
         try {
             ContextDO contextDO = new ContextDO();
-            BeanUtils.copyProperties(contextDO, sagaContextBase);
+            BeanUtils.copyProperties(contextDO, sagaRecord);
             return contextDO;
         } catch (Exception e) {
-            throw new SagaException("SagaContextBase转换为ContextDO失败，BizID:" + sagaContextBase.getBizId(), e);
+            throw new SagaException("SagaContextBase转换为ContextDO失败，BizID:" + sagaRecord.getBizId(), e);
         }
     }
 
-    private SagaContextBase contextDOToSagaContext(ContextDO contextDO) throws ClassNotFoundException {
+    private SagaRecord contextDOToSagaContext(ContextDO contextDO) throws ClassNotFoundException {
         try {
-            SagaContextBase sagaContextBase = new SagaContextBase();
-            BeanUtils.copyProperties(sagaContextBase, contextDO);
-            return sagaContextBase;
+            SagaRecord sagaRecord = new SagaRecord();
+            BeanUtils.copyProperties(sagaRecord, contextDO);
+            return sagaRecord;
         } catch (Exception e) {
             throw new SagaException("ContextDO转换为SagaContextBase失败，BizID:" + contextDO.getBizId(), e);
         }

@@ -3,8 +3,11 @@ package org.mltds.sargeras.spi.manager;
 import java.util.Date;
 import java.util.List;
 
-import org.mltds.sargeras.api.SagaContextBase;
 import org.mltds.sargeras.api.SagaStatus;
+import org.mltds.sargeras.api.model.SagaRecord;
+import org.mltds.sargeras.api.model.SagaTxRecord;
+import org.mltds.sargeras.api.model.SagaTxRecordParam;
+import org.mltds.sargeras.api.model.SagaTxRecordResult;
 import org.mltds.sargeras.spi.SagaBean;
 
 /**
@@ -15,17 +18,17 @@ public interface Manager extends SagaBean {
     /**
      * 作为一条新记录去创建并获取锁，获取锁保证一定成功，如果 BizId 已存在则报错
      */
-    long saveContextAndLock(SagaContextBase context, int lockTimeout);
+    long saveContextAndLock(SagaRecord context, int lockTimeout);
 
     /**
-     * 根据 ContextId 从存储的信息中，重新构建出一个 {@link SagaContextBase}
+     * 根据 ContextId 从存储的信息中，重新构建出一个 {@link SagaRecord}
      */
-    SagaContextBase loadContext(long contextId);
+    SagaRecord loadContext(long contextId);
 
     /**
-     * 根据 BizId 从存储的信息中，重新构建出一个 {@link SagaContextBase}
+     * 根据 BizId 从存储的信息中，重新构建出一个 {@link SagaRecord}
      */
-    SagaContextBase loadContext(String appName, String bizName, String bizId);
+    SagaRecord loadContext(String appName, String bizName, String bizId);
 
     /**
      * 保存状态并更新ModifyTime
@@ -34,9 +37,11 @@ public interface Manager extends SagaBean {
 
     /**
      * 保存当前要执行/执行中的TX
-     *
+     * 
+     * @param txRecord
+     * @param paramList
      */
-    void saveCurrentTx(long contextId, String cls);
+    SagaTxRecord saveCurrentTxAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> paramList);
 
     /**
      * 保存上一个执行完的TX
@@ -86,4 +91,20 @@ public interface Manager extends SagaBean {
      */
     List<Long> findNeedRetryContextList(int limit);
 
+    /**
+     *
+     * @param txRecord
+     * @return
+     */
+    SagaTxRecord saveCurrentTxAndParam(SagaTxRecord txRecord);
+
+    /**
+     * 如果无数据，需要返回空的List，而不能是 null
+     * 
+     * @param recordId
+     * @return
+     */
+    List<SagaTxRecord> findTxRecordList(Long recordId);
+
+    SagaTxRecordResult getTxRecordResult(Long txRecordId);
 }

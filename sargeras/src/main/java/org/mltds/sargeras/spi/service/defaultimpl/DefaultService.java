@@ -20,7 +20,6 @@ public class DefaultService implements Service {
         SagaContext context = SagaContext.newContext(saga, bizId);
         context.saveAndLock();// 保存并生成ID
 
-        context.saveBizParam(bizParam);//
 
         // Run
         return run(context);

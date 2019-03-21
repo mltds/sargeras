@@ -1,8 +1,10 @@
-package org.mltds.sargeras.api;
+package org.mltds.sargeras.api.model;
 
 import java.util.Date;
 
-public class SagaContextBase {
+import org.mltds.sargeras.api.SagaStatus;
+
+public class SagaRecord {
 
     protected Long id;
 
@@ -10,11 +12,9 @@ public class SagaContextBase {
     protected String bizName;
     protected String bizId;
 
-    protected SagaStatus status;
+    protected Long currentTxRecordId;
 
-    protected String currentTxName;
-    protected String preExecutedTxName;
-    protected String preCompensatedTxName;
+    protected SagaStatus status;
 
     /**
      * 每次执行的id, 伴随着 Context 对象的生命周期，不需要存储<br/>
@@ -31,14 +31,14 @@ public class SagaContextBase {
     protected Date nextTriggerTime;
 
     /**
-     * 创建时间
-     */
-    protected Date createTime;
-
-    /**
      * 过期时间，过期时间，创建时间加业务超时时间
      */
     protected Date expireTime;
+
+    /**
+     * 创建时间
+     */
+    protected Date createTime;
 
     /**
      * 最新修改时间
@@ -77,36 +77,20 @@ public class SagaContextBase {
         this.bizId = bizId;
     }
 
+    public Long getCurrentTxRecordId() {
+        return currentTxRecordId;
+    }
+
+    public void setCurrentTxRecordId(Long currentTxRecordId) {
+        this.currentTxRecordId = currentTxRecordId;
+    }
+
     public SagaStatus getStatus() {
         return status;
     }
 
     public void setStatus(SagaStatus status) {
         this.status = status;
-    }
-
-    public String getCurrentTxName() {
-        return currentTxName;
-    }
-
-    public void setCurrentTxName(String currentTxName) {
-        this.currentTxName = currentTxName;
-    }
-
-    public String getPreExecutedTxName() {
-        return preExecutedTxName;
-    }
-
-    public void setPreExecutedTxName(String preExecutedTxName) {
-        this.preExecutedTxName = preExecutedTxName;
-    }
-
-    public String getPreCompensatedTxName() {
-        return preCompensatedTxName;
-    }
-
-    public void setPreCompensatedTxName(String preCompensatedTxName) {
-        this.preCompensatedTxName = preCompensatedTxName;
     }
 
     public String getTriggerId() {
@@ -133,20 +117,20 @@ public class SagaContextBase {
         this.nextTriggerTime = nextTriggerTime;
     }
 
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
-
     public Date getExpireTime() {
         return expireTime;
     }
 
     public void setExpireTime(Date expireTime) {
         this.expireTime = expireTime;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
     }
 
     public Date getModifyTime() {
