@@ -8,7 +8,7 @@
     </settings>
 
     <typeAliases>
-        <typeAlias alias="Context" type="org.mltds.sargeras.spi.manager.rdbms.model.ContextDO"/>
+        <typeAlias alias="SagaRecord" type="org.mltds.sargeras.api.model.SagaRecord"/>
         <typeAlias alias="ContextInfo" type="org.mltds.sargeras.spi.manager.rdbms.model.ContextInfoDO"/>
         <typeAlias alias="ContextLock" type="org.mltds.sargeras.spi.manager.rdbms.model.ContextLockDO"/>
     </typeAliases>
@@ -21,9 +21,11 @@
     </environments>
 
     <mappers>
-        <mapper resource="sargeras/mapper/ContextMapper.xml"/>
-        <mapper resource="sargeras/mapper/ContextInfoMapper.xml"/>
-        <mapper resource="sargeras/mapper/ContextLockMapper.xml"/>
+        <mapper resource="sargeras/mapper/RecordMapper.xml"/>
+
+
+        <!--<mapper resource="sargeras/mapper/ContextInfoMapper.xml"/>-->
+        <!--<mapper resource="sargeras/mapper/ContextLockMapper.xml"/>-->
     </mappers>
 
 </configuration>

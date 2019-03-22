@@ -103,7 +103,7 @@ public class SagaContext {
     }
 
     public void saveStatus(SagaStatus status) {
-        manager.saveContextStatus(record.getId(), status);
+        manager.saveRecordStatus(record.getId(), status);
         record.setStatus(status);
     }
 
@@ -186,8 +186,7 @@ public class SagaContext {
     }
 
     public SagaTxRecord saveCurrentTxAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> txRecordParamList) {
-        txRecord = manager.saveCurrentTxAndParam(txRecord, txRecordParamList);
-        record.setCurrentTxRecordId(txRecord.getId());
+        Long txRecordId = manager.saveTxRecordAndParam(txRecord, txRecordParamList);
 
         if (txRecordList == null) {
             txRecordList = manager.findTxRecordList(getRecordId());
@@ -204,7 +203,6 @@ public class SagaContext {
         }
 
         return Collections.unmodifiableList(txRecordList);
-
     }
 
     public SagaTxRecordResult getTxRecordResult(Long txRecordId) {
@@ -212,21 +210,18 @@ public class SagaContext {
     }
 
     public void saveTxStatus(Long txRecordId, SagaTxStatus status) {
-        // TODO
+        manager.saveTxRecordStatus(txRecordId, status);
     }
 
-    public SagaTxRecordResult saveTxRecordResult(SagaTxRecordResult recordResult) {
-        // TODO
-        return null;
+    public void saveTxRecordSuccAndResult(SagaTxRecordResult recordResult) {
+        manager.saveTxRecordSuccAndResult(recordResult);
     }
-
 
     public List<SagaTxRecordParam> getTxRecordParam(Long txRecordId) {
-        //TODO
-        return null;
+        return manager.getTxRecordParam(txRecordId);
     }
 
-    /* record getter start */
+    /* getter start */
     public Long getRecordId() {
         return record.getId();
     }
@@ -251,23 +246,14 @@ public class SagaContext {
         return record.getTriggerId();
     }
 
-    public int getTriggerCount() {
-        return record.getTriggerCount();
-    }
-
     public Date getNextTriggerTime() {
         return record.getNextTriggerTime();
-    }
-
-    public Date getCreateTime() {
-        return record.getCreateTime();
     }
 
     public Date getExpireTime() {
         return record.getExpireTime();
     }
 
-
-    /* record getter end */
+    /* getter end */
 
 }

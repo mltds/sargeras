@@ -1,5 +1,6 @@
 package org.mltds.sargeras.spi.pollretry.defaultimpl;
 
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -71,7 +72,7 @@ public class DefaultPollRetry implements PollRetry {
                 int limit = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_LIMIT, "100"));
                 int interval = Integer.valueOf(SagaConfig.getProperty(POLLRETRY_INTERVAL, "1"));
 
-                List<Long> needRetryContextList = manager.findNeedRetryContextList(limit);
+                List<Long> needRetryContextList = manager.findNeedRetryContextList(new Date(), limit);
 
                 for (Long contextId : needRetryContextList) {
                     try {

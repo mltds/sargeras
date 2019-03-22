@@ -13,7 +13,7 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mltds.sargeras.spi.manager.rdbms.mapper.ContextInfoMapper;
-import org.mltds.sargeras.spi.manager.rdbms.mapper.ContextMapper;
+import org.mltds.sargeras.spi.manager.rdbms.mapper.SagaRecordMapper;
 import org.mltds.sargeras.spi.manager.rdbms.model.ContextDO;
 import org.mltds.sargeras.spi.manager.rdbms.model.ContextInfoDO;
 
@@ -34,7 +34,7 @@ public class MybatisTest {
     @Test
     public void testConn() throws IOException {
         SqlSession sqlSession = sqlSessionFactory.openSession();
-        ContextMapper mapper = sqlSession.getMapper(ContextMapper.class);
+        SagaRecordMapper mapper = sqlSession.getMapper(SagaRecordMapper.class);
         ContextDO contextDO = mapper.selectById(1L);
     }
 
@@ -69,8 +69,8 @@ public class MybatisTest {
     @Test
     public void testFindNeedRetryContextList() {
         SqlSession sqlSession = sqlSessionFactory.openSession();
-        ContextMapper mapper = sqlSession.getMapper(ContextMapper.class);
-        List<Long> list = mapper.findNeedRetryContextList(new Date(), 100);
+        SagaRecordMapper mapper = sqlSession.getMapper(SagaRecordMapper.class);
+        List<Long> list = mapper.findNeedRetryRecordList(new Date(), 100);
         System.out.println(list.size());
     }
 

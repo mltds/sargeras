@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.mltds.sargeras.api.SagaStatus;
+import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.model.SagaRecord;
 import org.mltds.sargeras.api.model.SagaTxRecord;
 import org.mltds.sargeras.api.model.SagaTxRecordParam;
@@ -33,7 +34,7 @@ public interface Manager extends SagaBean {
     /**
      * 保存状态并更新ModifyTime
      */
-    void saveContextStatus(long contextId, SagaStatus status);
+    void saveRecordStatus(long contextId, SagaStatus status);
 
     /**
      * 保存当前要执行/执行中的TX
@@ -41,17 +42,7 @@ public interface Manager extends SagaBean {
      * @param txRecord
      * @param paramList
      */
-    SagaTxRecord saveCurrentTxAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> paramList);
-
-    /**
-     * 保存上一个执行完的TX
-     */
-    void savePreExecutedTx(long contextId, String cls);
-
-    /**
-     * 保存上一个补偿完的TX
-     */
-    void savePreCompensatedTx(long contextId, String cls);
+    long saveTxRecordAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> paramList);
 
     /**
      * 触发次数自增加一
@@ -76,7 +67,7 @@ public interface Manager extends SagaBean {
     /**
      * 获取锁
      */
-    boolean lock(long id, String triggerId, int timeoutSec);
+    boolean lock(long id, String triggerId, int lockExpireSec);
 
     /**
      * 释放锁
@@ -89,14 +80,7 @@ public interface Manager extends SagaBean {
      * @param limit 返回最多条数，参见数据库的 limit。
      * @return Context ID 的集合
      */
-    List<Long> findNeedRetryContextList(int limit);
-
-    /**
-     *
-     * @param txRecord
-     * @return
-     */
-    SagaTxRecord saveCurrentTxAndParam(SagaTxRecord txRecord);
+    List<Long> findNeedRetryContextList(Date beforeTriggerTime, int limit);
 
     /**
      * 如果无数据，需要返回空的List，而不能是 null
@@ -107,4 +91,16 @@ public interface Manager extends SagaBean {
     List<SagaTxRecord> findTxRecordList(Long recordId);
 
     SagaTxRecordResult getTxRecordResult(Long txRecordId);
+
+    void saveTxRecordStatus(Long txRecordId, SagaTxStatus status);
+
+    /**
+     * 将 TxRecord 标记为成功，并保存执行结果
+     * 
+     * @param recordResult
+     * @return
+     */
+    void saveTxRecordSuccAndResult(SagaTxRecordResult recordResult);
+
+    List<SagaTxRecordParam> getTxRecordParam(Long txRecordId);
 }

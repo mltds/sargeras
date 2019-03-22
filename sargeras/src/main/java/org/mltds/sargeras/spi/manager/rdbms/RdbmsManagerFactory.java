@@ -14,7 +14,7 @@ import org.mltds.sargeras.spi.manager.Manager;
 import org.mltds.sargeras.spi.manager.ManagerFactory;
 import org.mltds.sargeras.spi.manager.rdbms.mapper.ContextInfoMapper;
 import org.mltds.sargeras.spi.manager.rdbms.mapper.ContextLockMapper;
-import org.mltds.sargeras.spi.manager.rdbms.mapper.ContextMapper;
+import org.mltds.sargeras.spi.manager.rdbms.mapper.SagaRecordMapper;
 
 /**
  * 关系型数据库存储方式
@@ -47,8 +47,8 @@ public class RdbmsManagerFactory implements ManagerFactory {
                 InputStream inputStream = Resources.getResourceAsStream(MYBATIS_RESOURCE);
                 sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
 
-                ContextMapper contextMapper = createMapperProxy(ContextMapper.class);
-                manager.setContextMapper(contextMapper);
+                SagaRecordMapper sagaRecordMapper = createMapperProxy(SagaRecordMapper.class);
+                manager.setSagaRecordMapper(sagaRecordMapper);
 
                 ContextInfoMapper contextInfoMapper = createMapperProxy(ContextInfoMapper.class);
                 manager.setContextInfoMapper(contextInfoMapper);

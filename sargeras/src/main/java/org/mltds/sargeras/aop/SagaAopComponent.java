@@ -2,11 +2,13 @@ package org.mltds.sargeras.aop;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.mltds.sargeras.api.*;
 import org.mltds.sargeras.api.annotation.SagaBizId;
@@ -17,6 +19,7 @@ import org.mltds.sargeras.api.model.SagaTxRecord;
 import org.mltds.sargeras.api.model.SagaTxRecordParam;
 import org.mltds.sargeras.api.model.SagaTxRecordResult;
 import org.mltds.sargeras.spi.serializer.Serializer;
+import org.mltds.sargeras.utils.NULL;
 import org.mltds.sargeras.utils.Utils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +42,11 @@ public class SagaAopComponent implements ApplicationContextAware {
 
     @Autowired
     private SagaAopHolder aopHolder;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
 
     /**
      * 获取Saga，如果获取不到则构建一个并放到 {@link SagaApplication} 里
@@ -163,7 +171,7 @@ public class SagaAopComponent implements ApplicationContextAware {
 
             if (txStatus.equals(SagaTxStatus.SUCCESS) || txStatus.equals(SagaTxStatus.FAILURE) || txStatus.equals(SagaTxStatus.COMPENSATE_PROCESSING)) {
                 try {
-                    doCompensate(txRecord, context);
+                    doCompensate(txRecord);
                     context.saveTxStatus(txRecord.getId(), SagaTxStatus.COMPENSATE_SUCCESS);
                 } catch (Exception e) {
                     if (e instanceof Failure) {
@@ -184,7 +192,9 @@ public class SagaAopComponent implements ApplicationContextAware {
 
     }
 
-    public Object doCompensate(SagaTxRecord txRecord, SagaContext context) throws Exception {
+    public Object doCompensate(SagaTxRecord txRecord) throws Exception {
+
+        SagaContext context = aopHolder.getContext();
 
         Long id = txRecord.getId();
         SagaTxStatus txStatus = txRecord.getStatus();
@@ -227,22 +237,135 @@ public class SagaAopComponent implements ApplicationContextAware {
 
     }
 
-    public Object getFinalResult() {
+    public Object doExecute(ProceedingJoinPoint proceedingJoinPoint, SagaTxRecord txRecord) throws Throwable {
 
         SagaContext context = aopHolder.getContext();
 
+        Object result;
+        try {
+            // 执行
+            result = proceedingJoinPoint.proceed(proceedingJoinPoint.getArgs());
+            // 保存结果
+            saveTxRecordResult(txRecord.getRecordId(), txRecord.getId(), result);
+            return result;
+        } catch (Throwable throwable) {
+            if (throwable instanceof Failure) {
+                context.saveTxStatus(txRecord.getId(), SagaTxStatus.FAILURE);
+            } else {
+                // 其他异常情况全部视为处理中
+                context.saveTxStatus(txRecord.getId(), SagaTxStatus.PROCESSING);
+            }
+            throw throwable;
+        }
+    }
+
+    public SagaTxRecord saveTxRecordAndParam(ProceedingJoinPoint proceedingJoinPoint) {
+
+        SagaContext context = aopHolder.getContext();
+
+        MethodSignature methodSignature = (MethodSignature) proceedingJoinPoint.getSignature();
+        Method method = methodSignature.getMethod();
+        org.mltds.sargeras.api.annotation.SagaTx sagaTx = method.getAnnotation(org.mltds.sargeras.api.annotation.SagaTx.class);
+        boolean persistent = sagaTx.paramPersistent();
+
+        SagaTxRecord txRecord = new SagaTxRecord();
+        txRecord.setRecordId(context.getRecordId());
+
+        String cls = proceedingJoinPoint.getTarget().getClass().getName();
+        txRecord.setCls(cls);
+
+        String methodName = method.getName();
+        txRecord.setMethod(methodName);
+
+        String compensate = sagaTx.compensate();
+        txRecord.setCompensateMethod(compensate);
+
+        Class<?>[] parameterTypesClass = method.getParameterTypes();
+        String parameterTypesStr = Utils.parameterTypesToString(parameterTypesClass);
+        txRecord.setParameterTypes(parameterTypesStr);
+
+        String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);
+        String parameterNamesStr = Utils.arrayToString(parameterNames);
+        txRecord.setParameterNames(parameterNamesStr);
+
+        txRecord.setStatus(SagaTxStatus.PROCESSING);
+
+        List<SagaTxRecordParam> txRecordParamList = null;
+
+        if (persistent && parameterTypesClass != null) {
+            int paramCount = parameterTypesClass.length;
+            txRecordParamList = new ArrayList<>(paramCount);
+
+            Object[] args = proceedingJoinPoint.getArgs();
+
+            for (int i = 0; i < paramCount; i++) {
+                SagaTxRecordParam param = new SagaTxRecordParam();
+                param.setRecordId(context.getRecordId());
+                param.setParameterType(parameterTypesClass[i].getName());
+                param.setParameterName(parameterNames[i]);
+                param.setParameter(serializer.serialize(args[i]));
+
+                txRecordParamList.add(param);
+            }
+
+        }
+
+        return context.saveCurrentTxAndParam(txRecord, txRecordParamList);
+
+    }
+
+    public SagaTxRecord getPreviousTxRecord(ProceedingJoinPoint proceedingJoinPoint) {
+
+        SagaContext context = aopHolder.getContext();
+
+        String cls = proceedingJoinPoint.getTarget().getClass().getName();
+
+        MethodSignature methodSignature = (MethodSignature) proceedingJoinPoint.getSignature();
+        Method method = methodSignature.getMethod();
+        String methodName = method.getName();
+
+        Class<?>[] parameterTypesClass = method.getParameterTypes();
+        String parameterTypesStr = Utils.parameterTypesToString(parameterTypesClass);
+
         List<SagaTxRecord> txRecordList = context.getTxRecordList();
-        SagaTxRecord txRecord = txRecordList.get(txRecordList.size() - 1);
-        SagaTxRecordResult txRecordResult = context.getTxRecordResult(txRecord.getId());
+        for (SagaTxRecord txRecord : txRecordList) {
+            if (txRecord.getCls().equals(cls) && txRecord.getMethod().equals(methodName) && txRecord.getParameterTypes().equals(parameterTypesStr)) {
+                return txRecord;
+            }
+        }
 
-        Class cls = Utils.loadClass(txRecordResult.getCls());
-        return serializer.deserialize(txRecordResult.getResult(), cls);
+        return null;
+
     }
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
+    public void saveTxRecordResult(Long sagaRecordId, Long sagaTxRecord, Object result) {
+
+        SagaContext context = aopHolder.getContext();
+
+        SagaTxRecordResult recordResult = new SagaTxRecordResult();
+        recordResult.setRecordId(sagaRecordId);
+        recordResult.setTxRecordId(sagaTxRecord);
+        if (result == null) {
+            recordResult.setCls(NULL.class.getName());
+        } else {
+            recordResult.setCls(result.getClass().getName());
+            recordResult.setResult(serializer.serialize(result));
+        }
+
+        context.saveTxRecordSuccAndResult(recordResult);
+
     }
 
+    public Object getTxRecordResult(Long sagaTxRecord) {
 
+        SagaContext context = aopHolder.getContext();
+
+        SagaTxRecordResult txRecordResult = context.getTxRecordResult(sagaTxRecord);
+        Class resultCls = Utils.loadClass(txRecordResult.getCls());
+        if (NULL.class.equals(resultCls)) {
+            return null;
+        } else {
+            return serializer.deserialize(txRecordResult.getResult(), resultCls);
+        }
+    }
 }

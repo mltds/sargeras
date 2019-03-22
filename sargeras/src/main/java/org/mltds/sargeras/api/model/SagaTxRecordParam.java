@@ -10,7 +10,6 @@ public class SagaTxRecordParam {
     private Long id;
     private Long recordId;
     private Long txRecordId;
-    private String cls;
     private String parameterType;
     private String parameterName;
     private byte[] parameter;
@@ -39,14 +38,6 @@ public class SagaTxRecordParam {
 
     public void setTxRecordId(Long txRecordId) {
         this.txRecordId = txRecordId;
-    }
-
-    public String getCls() {
-        return cls;
-    }
-
-    public void setCls(String cls) {
-        this.cls = cls;
     }
 
     public String getParameterType() {

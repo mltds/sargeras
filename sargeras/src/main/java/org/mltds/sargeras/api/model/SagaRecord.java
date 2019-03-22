@@ -6,44 +6,47 @@ import org.mltds.sargeras.api.SagaStatus;
 
 public class SagaRecord {
 
-    protected Long id;
+    private Long id;
 
-    protected String appName;
-    protected String bizName;
-    protected String bizId;
+    private String appName;
+    private String bizName;
+    private String bizId;
 
-    protected Long currentTxRecordId;
-
-    protected SagaStatus status;
+    private SagaStatus status;
 
     /**
-     * 每次执行的id, 伴随着 Context 对象的生命周期，不需要存储<br/>
+     * 每次执行的id, 伴随着 Context 对象的生命周期<br/>
      * 比如第一次执行，triggerId 为 A ，返回处理中后挂起，过段时间第二次执行的时候为 B 。<br/>
      */
-    protected String triggerId;
+    private String triggerId;
     /**
      * 触发执行次数，首次执行记为1，每次轮询重试+1
      */
-    protected int triggerCount;
+    private int triggerCount;
+
     /**
      * 当遇到处理中的情况时，期望下一次轮询重试的触发时间。
      */
-    protected Date nextTriggerTime;
+    private Date nextTriggerTime;
+
+    private boolean locked;
+
+    private Date lockExpireTime;
 
     /**
      * 过期时间，过期时间，创建时间加业务超时时间
      */
-    protected Date expireTime;
+    private Date expireTime;
 
     /**
      * 创建时间
      */
-    protected Date createTime;
+    private Date createTime;
 
     /**
      * 最新修改时间
      */
-    protected Date modifyTime;
+    private Date modifyTime;
 
     public Long getId() {
         return id;
@@ -77,14 +80,6 @@ public class SagaRecord {
         this.bizId = bizId;
     }
 
-    public Long getCurrentTxRecordId() {
-        return currentTxRecordId;
-    }
-
-    public void setCurrentTxRecordId(Long currentTxRecordId) {
-        this.currentTxRecordId = currentTxRecordId;
-    }
-
     public SagaStatus getStatus() {
         return status;
     }
@@ -115,6 +110,22 @@ public class SagaRecord {
 
     public void setNextTriggerTime(Date nextTriggerTime) {
         this.nextTriggerTime = nextTriggerTime;
+    }
+
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
+    public Date getLockExpireTime() {
+        return lockExpireTime;
+    }
+
+    public void setLockExpireTime(Date lockExpireTime) {
+        this.lockExpireTime = lockExpireTime;
     }
 
     public Date getExpireTime() {
