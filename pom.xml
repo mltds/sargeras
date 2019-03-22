@@ -7,11 +7,10 @@
     <groupId>org.mltds.sargeras</groupId>
     <artifactId>sargeras-parent</artifactId>
     <packaging>pom</packaging>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 
     <modules>
         <module>sargeras</module>
-        <module>sargeras-spring</module>
         <module>sargeras-example</module>
     </modules>
 
@@ -36,12 +35,7 @@
             <dependency>
                 <groupId>org.mltds.sargeras</groupId>
                 <artifactId>sargeras</artifactId>
-                <version>0.3.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mltds.sargeras</groupId>
-                <artifactId>sargeras-spring</artifactId>
-                <version>0.3.0-SNAPSHOT</version>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <!--sargeras end-->
 

@@ -46,10 +46,10 @@ public class SagaApplicationDefinitionParser extends AbstractSingleBeanDefinitio
             String appName = annotation.appName();
             String bizName = annotation.bizName();
 
-            SagaBuilder.newBuilder(appName, bizName);
 
 
         }
+
 
 
 
