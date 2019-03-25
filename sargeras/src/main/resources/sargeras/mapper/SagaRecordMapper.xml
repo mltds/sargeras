@@ -36,6 +36,39 @@
         #{expireTime},#{createTime},#{modifyTime})
     </insert>
 
+
+    <update id="updateStatus">
+        UPDATE saga_record SET
+        `status` = #{status},
+        modify_time = #{modifyTime}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateForLock">
+        UPDATE saga_record SET
+        locked = 1,
+        trigger_id = #{triggerId},
+        lock_expire_time = #{lockExpireTime}
+        WHERE id = #{id} AND trigger_id = #{oldTriggerId}
+    </update>
+
+    updateForUnlock
+    <update id="updateForUnlock">
+        UPDATE saga_record SET
+        locked = 0,
+        trigger_id = null,
+        lock_expire_time = null
+        WHERE id = #{id} AND trigger_id = #{oldTriggerId}
+    </update>
+
+    <update id="updateNextTriggerTimeAndIncrementCount">
+        UPDATE saga_record SET
+        next_trigger_time = #{nextTriggerTime} ,
+        modify_time = #{modifyTime}
+        WHERE id = #{id}
+    </update>
+
+
     <select id="selectById" resultMap="SagaRecordRM">
         select * from saga_record where id = #{id}
     </select>
@@ -47,31 +80,14 @@
     </select>
 
 
-    <update id="updateById" parameterType="Context">
-        UPDATE saga_record
-        <set>
-            <if test="status != null">
-                `status` = #{status},
-            </if>
-            <if test="nextTriggerTime != null">
-                `next_trigger_time` = #{nextTriggerTime},
-            </if>
-            <if test="modifyTime != null">
-                `modify_time` = #{modifyTime},
-            </if>
-        </set>
-        WHERE id = #{id}
-    </update>
-
-    <update id="incrementTriggerCount">
-        UPDATE saga_record SET trigger_count = trigger_count + 1 , modify_time = #{modifyTime} WHERE id = #{id}
-    </update>
-
-    <select id="findNeedRetryContextList" resultType="java.lang.Long">
+    <select id="selectNeedRetryRecordList" resultType="java.lang.Long">
         select id from saga_record where
         <![CDATA[ `next_trigger_time` <= #{beforeTriggerTime} ]]>
         and `status` in ('INIT','EXECUTING','COMPENSATING')
         order by `next_trigger_time` limit #{limit};
     </select>
+
+
+
 
 </mapper>

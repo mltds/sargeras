@@ -6,16 +6,12 @@ import java.util.List;
 
 import org.mltds.sargeras.api.SagaStatus;
 import org.mltds.sargeras.api.SagaTxStatus;
-import org.mltds.sargeras.api.exception.SagaContextLockFailException;
-import org.mltds.sargeras.api.model.SagaRecord;
-import org.mltds.sargeras.api.model.SagaTxRecord;
-import org.mltds.sargeras.api.model.SagaTxRecordParam;
-import org.mltds.sargeras.api.model.SagaTxRecordResult;
+import org.mltds.sargeras.api.model.*;
 import org.mltds.sargeras.spi.manager.Manager;
 import org.mltds.sargeras.spi.manager.rdbms.mapper.*;
-import org.mltds.sargeras.spi.manager.rdbms.model.ContextInfoDO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author sunyi
@@ -24,54 +20,97 @@ public class RdbmsManager implements Manager {
 
     private static final Logger logger = LoggerFactory.getLogger(RdbmsManager.class);
 
+    @Autowired
     private SagaRecordMapper sagaRecordMapper;
+
+    @Autowired
+    private SagaRecordParamMapper sagaRecordParamMapper;
+
+    @Autowired
     private SagaTxRecordMapper sagaTxRecordMapper;
+
+    @Autowired
     private SagaTxRecordParamMapper sagaTxRecordParamMapper;
+
+    @Autowired
     private SagaTxRecordResultMapper sagaTxRecordResultMapper;
-
-    private ContextInfoMapper contextInfoMapper;
-    // private ContextLockMapper contextLockMapper;
-
-    private JsonSerialize serialize = new JsonSerialize();
 
     @Override
     @Transaction
-    public long saveContextAndLock(SagaRecord sagaRecord, int lockTimeout) {
+    public long firstTrigger(SagaRecord record, List<SagaRecordParam> recordParamList) {
 
-        Calendar c = Calendar.getInstance();
+        Date now = new Date();
+        record.setCreateTime(now);
+        record.setModifyTime(now);
+        sagaRecordMapper.insert(record);
+        Long id = record.getId();
 
-        sagaRecord.setCreateTime(c.getTime());
-        sagaRecord.setModifyTime(c.getTime());
-
-        sagaRecordMapper.insert(sagaRecord);
-
-        Long id = sagaRecord.getId();
-
-        boolean lock = lock(id, sagaRecord.getTriggerId(), lockTimeout);
-        if (!lock) {
-            throw new SagaContextLockFailException(sagaRecord.getId(), sagaRecord.getTriggerId());
+        for (SagaRecordParam recordParam : recordParamList) {
+            recordParam.setRecordId(id);
+            recordParam.setCreateTime(now);
+            recordParam.setModifyTime(now);
         }
+
+        sagaRecordParamMapper.insertList(recordParamList);
 
         return id;
     }
 
     @Override
-    public SagaRecord loadContext(long contextId) {
+    @Transaction
+    public boolean trigger(Long recordId, String triggerId, Date nextTriggerTime, Date lockExpireTime) {
+
+        boolean locked;
+        SagaRecord sagaRecord = sagaRecordMapper.selectById(recordId);
+
+        if (sagaRecord == null) {
+            return false;
+        } else if (!sagaRecord.isLocked() || triggerId.equals(sagaRecord.getTriggerId())) {
+            int update = sagaRecordMapper.updateForLock(recordId, null, triggerId, lockExpireTime);
+            locked = update > 0;
+        } else {
+            Calendar c = Calendar.getInstance();
+            boolean after = c.getTime().after(sagaRecord.getExpireTime());
+            if (after) {
+                int lock = sagaRecordMapper.updateForLock(recordId, sagaRecord.getTriggerId(), triggerId, lockExpireTime);
+                locked = lock > 0;
+            } else {
+                return false;
+            }
+        }
+
+        if (locked) {
+            sagaRecordMapper.updateNextTriggerTimeAndIncrementCount(recordId, nextTriggerTime, new Date());
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean triggerOver(Long recordId, String triggerId) {
+        SagaRecord sagaRecord = sagaRecordMapper.selectById(recordId);
+        if (sagaRecord == null || !sagaRecord.getTriggerId().equals(triggerId)) {
+            return false;
+        } else {
+            int count = sagaRecordMapper.updateForUnlock(recordId, triggerId);
+            return count > 0;
+        }
+    }
+
+    @Override
+    public SagaRecord findRecord(long contextId) {
         return sagaRecordMapper.selectById(contextId);
     }
 
     @Override
-    public SagaRecord loadContext(String appName, String bizName, String bizId) {
+    public SagaRecord findRecord(String appName, String bizName, String bizId) {
         return sagaRecordMapper.selectByBiz(appName, bizName, bizId);
     }
 
     @Override
-    public void saveRecordStatus(long contextId, SagaStatus status) {
-        SagaRecord sagaRecord = new SagaRecord();
-        sagaRecord.setId(contextId);
-        sagaRecord.setStatus(status);
-        sagaRecord.setModifyTime(new Date());
-        sagaRecordMapper.updateById(sagaRecord);
+    public void saveRecordStatus(long recordId, SagaStatus status) {
+        sagaRecordMapper.updateStatus(recordId, status, new Date());
     }
 
     @Override
@@ -87,122 +126,8 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    public void incrementTriggerCount(long contextId) {
-        sagaRecordMapper.incrementTriggerCount(contextId, new Date());
-    }
-
-    @Override
-    public void saveNextTriggerTime(long contextId, Date nextTriggerTime) {
-        SagaRecord sagaRecord = new SagaRecord();
-        sagaRecord.setId(contextId);
-        sagaRecord.setNextTriggerTime(nextTriggerTime);
-        sagaRecord.setModifyTime(new Date());
-        sagaRecordMapper.updateById(sagaRecord);
-    }
-
-    @Override
-    public void saveContextInfo(long contextId, String key, Object info) {
-        ContextInfoDO contextInfoDO = contextInfoMapper.selectByKey(contextId, key);
-        if (contextInfoDO == null) {
-            contextInfoDO = new ContextInfoDO();
-            contextInfoDO.setContextId(contextId);
-            contextInfoDO.setKey(key);
-            String infoStr = serialize.write(info);
-            contextInfoDO.setInfo(infoStr);
-            Date now = new Date();
-            contextInfoDO.setCreateTime(now);
-            contextInfoDO.setModifyTime(now);
-
-            contextInfoMapper.insert(contextInfoDO);
-        } else {
-
-            String infoStr = serialize.write(info);
-            contextInfoDO.setKey(infoStr);
-            contextInfoDO.setModifyTime(new Date());
-
-            contextInfoMapper.updateById(contextInfoDO);
-        }
-    }
-
-    @Override
-    public <T> T loadContextInfo(long contextId, String key, Class<T> cls) {
-
-        ContextInfoDO contextInfoDO = contextInfoMapper.selectByKey(contextId, key);
-        if (contextInfoDO == null || contextInfoDO.getInfo() == null) {
-            return null;
-        }
-        return serialize.read(contextInfoDO.getInfo(), cls);
-    }
-
-    @Override
-    public boolean lock(long id, String triggerId, int lockExpireSec) {
-
-        try {
-
-            SagaRecord sagaRecord = sagaRecordMapper.selectById(id);
-
-            if (sagaRecord == null) {
-                return false;
-            } else if (!sagaRecord.isLocked() || triggerId.equals(sagaRecord.getTriggerId())) {
-                Date date = calExpireTime(lockExpireSec);
-                int update = sagaRecordMapper.updateForLock(id, triggerId, date);
-                return update > 0;
-            } else {
-                Calendar c = Calendar.getInstance();
-                boolean after = c.getTime().after(sagaRecord.getExpireTime());
-                if (after) {
-                    Date date = calExpireTime(lockExpireSec);
-                    int lock = sagaRecordMapper.updateForLock(id, sagaRecord.getTriggerId(), triggerId, date);
-                    return lock > 0;
-                } else {
-                    return false;
-                }
-            }
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    // private ContextLockDO newLock(long id, String triggerId, int timeoutSec) {
-    // ContextLockDO contextLockDO = new ContextLockDO();
-    // contextLockDO.setContextId(id);
-    // contextLockDO.setTriggerId(triggerId);
-    //
-    // Calendar c = Calendar.getInstance();
-    // contextLockDO.setCreateTime(c.getTime());
-    //
-    // Date date = calExpireTime(timeoutSec);
-    // contextLockDO.setExpireTime(date);
-    //
-    // return contextLockDO;
-    // }
-
-    private Date calExpireTime(int timeout) {
-        Calendar c = Calendar.getInstance();
-        c.add(Calendar.SECOND, timeout);
-        return c.getTime();
-    }
-
-    @Override
-    public boolean unlock(long id, String triggerId) {
-
-        try {
-            SagaRecord sagaRecord = sagaRecordMapper.selectById(id);
-            if (sagaRecord == null || !sagaRecord.getTriggerId().equals(triggerId)) {
-                return false;
-            } else {
-                int count = sagaRecordMapper.updateForUnlock(id, triggerId);
-                return count > 0;
-            }
-        } catch (Exception e) {
-            logger.warn("操作数据库释放锁失败ContextId:{" + id + "},triggerId:{" + triggerId + "}", e);
-            return false;
-        }
-    }
-
-    @Override
-    public List<Long> findNeedRetryContextList(Date beforeTriggerTime, int limit) {
-        return sagaRecordMapper.findNeedRetryRecordList(beforeTriggerTime, limit);
+    public List<Long> findNeedRetryRecordList(Date beforeTriggerTime, int limit) {
+        return sagaRecordMapper.selectNeedRetryRecordList(beforeTriggerTime, limit);
     }
 
     @Override
@@ -239,35 +164,9 @@ public class RdbmsManager implements Manager {
         return sagaTxRecordParamMapper.selectByTxRecordId(txRecordId);
     }
 
-    // private ContextDO sagaContextToContextDO(SagaRecord sagaRecord) {
-    // try {
-    // ContextDO contextDO = new ContextDO();
-    // BeanUtils.copyProperties(contextDO, sagaRecord);
-    // return contextDO;
-    // } catch (Exception e) {
-    // throw new SagaException("SagaContextBase转换为ContextDO失败，BizID:" + sagaRecord.getBizId(), e);
-    // }
-    // }
-
-    // private SagaRecord contextDOToSagaContext(ContextDO contextDO) throws ClassNotFoundException {
-    // try {
-    // SagaRecord sagaRecord = new SagaRecord();
-    // BeanUtils.copyProperties(sagaRecord, contextDO);
-    // return sagaRecord;
-    // } catch (Exception e) {
-    // throw new SagaException("ContextDO转换为SagaContextBase失败，BizID:" + contextDO.getBizId(), e);
-    // }
-    // }
-
-    void setSagaRecordMapper(SagaRecordMapper sagaRecordMapper) {
-        this.sagaRecordMapper = sagaRecordMapper;
+    @Override
+    public List<SagaRecordParam> findRecordParam(long recordId) {
+        return sagaRecordParamMapper.selectByRecordId(recordId);
     }
-
-    void setContextInfoMapper(ContextInfoMapper contextInfoMapper) {
-        this.contextInfoMapper = contextInfoMapper;
-    }
-    // void setContextLockMapper(ContextLockMapper contextLockMapper) {
-    // this.contextLockMapper = contextLockMapper;
-    // }
 
 }

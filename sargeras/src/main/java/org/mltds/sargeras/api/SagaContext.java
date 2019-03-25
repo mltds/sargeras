@@ -2,100 +2,144 @@ package org.mltds.sargeras.api;
 
 import java.util.*;
 
-import org.mltds.sargeras.api.model.SagaRecord;
-import org.mltds.sargeras.api.model.SagaTxRecord;
-import org.mltds.sargeras.api.model.SagaTxRecordParam;
-import org.mltds.sargeras.api.model.SagaTxRecordResult;
+import org.mltds.sargeras.api.exception.SagaException;
+import org.mltds.sargeras.api.exception.SagaLockFailException;
+import org.mltds.sargeras.api.model.*;
 import org.mltds.sargeras.spi.manager.Manager;
 
 /**
- * {@link SagaContext} 在JVM中的生命周期是线程级别的。<br/>
- * 即当执行一个 {@link Saga} 时，会新建一个 {@link SagaContext}，当线程结束时，这个 {@link SagaContext} 对象会被失效。<br/>
- * 如果这个 {@link Saga} 并没有执行完，当 reload 再次重试时，会根据 {@link Manager} 中的信息重新构建出这个 {@link SagaContext}，但是一个全新的JVM对象。<br/>
- * SagaContext 有个很重要的职责是维护内存数据与存储数据的一致性，这点很重要
+ * {@link SagaContext} 在JVM中的生命周期是线程级别的。即当执行一个 {@link Saga} 时，会新建一个 {@link SagaContext}，当线程结束时，这个 {@link SagaContext} 对象会被失效。如果这个 {@link Saga} 并没有执行完，当 reload
+ * 再次重试时，会根据 {@link Manager} 中的信息重新构建出这个 {@link SagaContext}，但是一个全新的JVM对象。<br/>
+ * 同时 SagaContext 也缓存了一些执行过程中需要的信息，那么也要维护内存数据与存储数据的一致性，这点很重要
  *
  * @author sunyi
  */
 public class SagaContext {
-
-    private static final String BIZ_PARAM_KEY = "BIZ_PARAM";
-    private static final String BIZ_RESULT_KEY = "BIZ_RESULT";
 
     private static Manager manager = SagaApplication.getManager();
 
     private Saga saga;
     private SagaRecord record;
     private List<SagaTxRecord> txRecordList;
-    private boolean lock = false;
-    private Map<String, Object> infoCache = new HashMap<>();
 
     private SagaContext() {
 
     }
 
-    public static SagaContext newContext(Saga saga, String bizId) {
+    public static SagaContext newContext(Saga saga) {
 
         SagaContext context = new SagaContext();
         context.saga = saga;
-
-        SagaRecord record = new SagaRecord();
-        record.setAppName(saga.getAppName());
-        record.setBizName(saga.getBizName());
-        record.setBizId(bizId);
-        record.setStatus(SagaStatus.INIT);
-
-        String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        record.setTriggerId(triggerId);
-        record.setTriggerCount(0);
-
-        Calendar now = Calendar.getInstance();
-        record.setNextTriggerTime(now.getTime());
-        now.add(Calendar.SECOND, saga.getBizTimeout());
-
-        now = Calendar.getInstance();
-        int bizTimeout = saga.getBizTimeout();
-        now.add(Calendar.SECOND, bizTimeout);
-        record.setExpireTime(now.getTime());
-
-        context.record = record;
-
         return context;
     }
 
     public static SagaContext loadContext(String appName, String bizName, String bizId) {
         SagaContext context = new SagaContext();
 
-        SagaRecord record = manager.loadContext(appName, bizName, bizId);
+        SagaRecord record = manager.findRecord(appName, bizName, bizId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         record.setTriggerId(triggerId);
 
         context.record = record;
-
         context.saga = SagaApplication.getSaga(appName, bizName);
 
         return context;
     }
 
-    public static SagaContext loadContext(long contextId) {
+    public static SagaContext loadContext(long recordId) {
         SagaContext context = new SagaContext();
 
-        SagaRecord record = manager.loadContext(contextId);
+        SagaRecord record = manager.findRecord(recordId);
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         record.setTriggerId(triggerId);
 
         context.record = record;
-
         context.saga = SagaApplication.getSaga(context.getAppName(), context.getBizName());
 
         return context;
     }
 
-    public void saveAndLock() {
-        long id = manager.saveContextAndLock(record, saga.getLockTimeout());
-        lock = true;
-        record.setId(id);
+    public void firstTrigger(String bizId, MethodInfo methodInfo, List<ParamInfo> paramInfoList) {
+        SagaRecord record = new SagaRecord();
+        record.setAppName(saga.getAppName());
+        record.setBizName(saga.getBizName());
+        record.setBizId(bizId);
+
+        record.setCls(methodInfo.getClsName());
+        record.setMethod(methodInfo.getMethodName());
+        record.setParameterTypes(methodInfo.getParameterTypesStr());
+
+        record.setStatus(SagaStatus.EXECUTING);
+
+        String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+        record.setTriggerId(triggerId);
+        record.setTriggerCount(1);
+
+        Date date = calculationNextTriggerTime(1);// 首次执行，默认为1
+        record.setNextTriggerTime(date);
+
+        record.setLocked(true);
+
+        Calendar c = Calendar.getInstance();
+        int lockTimeout = saga.getLockTimeout();
+        c.add(Calendar.SECOND, lockTimeout);
+        record.setLockExpireTime(c.getTime());
+
+        c = Calendar.getInstance();
+        int bizTimeout = saga.getBizTimeout();
+        c.add(Calendar.SECOND, bizTimeout);
+        record.setExpireTime(c.getTime());
+
+        this.record = record;
+
+        List<SagaRecordParam> recordParamList = new ArrayList<>(paramInfoList.size());
+        for (ParamInfo paramInfo : paramInfoList) {
+            SagaRecordParam recordParam = new SagaRecordParam();
+            recordParam.setParameterType(paramInfo.getParameterTypeStr());
+            recordParam.setParameterName(paramInfo.getParameterName());
+            recordParam.setParameter(paramInfo.getParameterByte());
+            recordParamList.add(recordParam);
+        }
+
+        long id = manager.firstTrigger(record, recordParamList);
+
+        this.record.setId(id);
+
+    }
+
+    /**
+     * 尝试触发一次并获取锁，如果获取锁成功，则触发次数+1，修改下一次触发时间，锁的过期时间。
+     *
+     * @throws SagaLockFailException 如果获取锁失败则抛出异常
+     */
+    public void trigger() throws SagaLockFailException {
+
+        Long recordId = record.getId();
+        String triggerId = record.getTriggerId();
+        int triggerCount = record.getTriggerCount() + 1;
+
+        Date nextTriggerTime = calculationNextTriggerTime(triggerCount);
+
+        Calendar c = Calendar.getInstance();
+        int lockTimeout = saga.getLockTimeout();
+        c.add(Calendar.SECOND, lockTimeout);
+        Date lockExpireTime = c.getTime();
+
+        boolean locked = manager.trigger(recordId, triggerId, nextTriggerTime, lockExpireTime);
+
+        if (locked) {
+            record.setTriggerCount(triggerCount);
+            record.setNextTriggerTime(nextTriggerTime);
+            record.setLockExpireTime(lockExpireTime);
+        } else {
+            throw new SagaLockFailException(record.getId(), record.getTriggerId());
+        }
+    }
+
+    public void triggerOver() {
+        manager.triggerOver(record.getId(), record.getTriggerId());
     }
 
     public Saga getSaga() {
@@ -108,37 +152,19 @@ public class SagaContext {
     }
 
     /**
-     * 将触发次数+1，并保存到存储中。
+     * @param currentTriggerCount 本次触发次数，因为不确定中为上次触发次数，所以这里不从 Record 里获取，改为外部传入的方式，需为大于0的数字
      */
-    public void incrementTriggerCount() {
-        manager.incrementTriggerCount(record.getId());
-        record.setTriggerCount(record.getTriggerCount() + 1);
-    }
-
-    /**
-     * 计算下一次的触发时间，并保存到存储中。
-     *
-     * @return 下一次的触发时间
-     */
-    public Date saveNextTriggerTime() {
-        Date nextTriggerTime = calculationNextTriggerTime();
-        manager.saveNextTriggerTime(record.getId(), nextTriggerTime);
-        record.setNextTriggerTime(nextTriggerTime);
-        return nextTriggerTime;
-    }
-
-    private Date calculationNextTriggerTime() {
+    private Date calculationNextTriggerTime(int currentTriggerCount) {
 
         int interval;
 
         int[] triggerInterval = saga.getTriggerInterval();
         int length = saga.getTriggerInterval().length;
-        int triggerCount = record.getTriggerCount();
 
-        if (triggerCount <= 0) {
-            interval = triggerInterval[0];
-        } else if (triggerCount < length) {
-            interval = triggerInterval[triggerCount - 1];
+        if (currentTriggerCount <= 0) {
+            throw new SagaException("错误的currentTriggerCount：" + currentTriggerCount);
+        } else if (currentTriggerCount < length) {
+            interval = triggerInterval[currentTriggerCount - 1];
         } else {
             interval = triggerInterval[length - 1];
         }
@@ -148,50 +174,24 @@ public class SagaContext {
         return now.getTime();
     }
 
-    /**
-     * 获取锁，非阻塞，独占这个SagaContext
-     *
-     * @return true 为获取锁成功；false 为失败
-     */
-    public boolean lock() {
-        if (this.lock) {
-            return true;
-        } else {
-            Integer lockTimeout = saga.getLockTimeout();
-            boolean lock = manager.lock(record.getId(), record.getTriggerId(), lockTimeout);
-            this.lock = lock;
-            return lock;
-        }
+    public List<SagaRecordParam> getRecordParam(long recordId) {
+        return manager.findRecordParam(recordId);
     }
 
-    /**
-     * 释放锁
-     *
-     * @return true 为释放锁成功；false为释放失败，比如持有锁超时了
-     */
-    public boolean unlock() {
-        if (!this.lock) {
-            return true;
-        } else {
-            boolean unlock = manager.unlock(record.getId(), record.getTriggerId());
-            if (unlock) {
-                this.lock = false;
-            }
-            return unlock;
-        }
-    }
-
-    public boolean isFirstExecute() {
+    public boolean isFirstTrigger() {
         return record.getTriggerCount() <= 1;
     }
 
     public SagaTxRecord saveCurrentTxAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> txRecordParamList) {
         Long txRecordId = manager.saveTxRecordAndParam(txRecord, txRecordParamList);
+        txRecord.setId(txRecordId);
 
         if (txRecordList == null) {
             txRecordList = manager.findTxRecordList(getRecordId());
+            if (txRecordList == null) {
+                txRecordList = new ArrayList<>();
+            }
         }
-
         txRecordList.add(txRecord);
 
         return txRecord;

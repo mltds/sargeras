@@ -15,7 +15,6 @@ public class SagaTxRecord {
     private String method;
     private String compensateMethod;
     private String parameterTypes;
-    private String parameterNames;
     private SagaTxStatus status;
     private Date createTime;
     private Date modifyTime;
@@ -66,14 +65,6 @@ public class SagaTxRecord {
 
     public void setParameterTypes(String parameterTypes) {
         this.parameterTypes = parameterTypes;
-    }
-
-    public String getParameterNames() {
-        return parameterNames;
-    }
-
-    public void setParameterNames(String parameterNames) {
-        this.parameterNames = parameterNames;
     }
 
     public SagaTxStatus getStatus() {

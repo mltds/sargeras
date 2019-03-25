@@ -1,8 +1,9 @@
 package org.mltds.sargeras.namespace;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.mltds.sargeras.api.SagaApplication;
-import org.mltds.sargeras.api.SagaBuilder;
-import org.mltds.sargeras.api.SagaLauncher;
 import org.mltds.sargeras.api.annotation.Saga;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,9 +13,6 @@ import org.springframework.beans.factory.xml.AbstractSingleBeanDefinitionParser;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.w3c.dom.Element;
-
-import java.util.Map;
-import java.util.Set;
 
 public class SagaApplicationDefinitionParser extends AbstractSingleBeanDefinitionParser implements ApplicationContextAware {
 
@@ -26,15 +24,12 @@ public class SagaApplicationDefinitionParser extends AbstractSingleBeanDefinitio
 
     protected void doParse(Element element, BeanDefinitionBuilder bean) {
 
-
-
     }
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 
         Map<String, Object> beansWithAnnotation = applicationContext.getBeansWithAnnotation(Saga.class);
-
 
         Set<Map.Entry<String, Object>> entries = beansWithAnnotation.entrySet();
 
@@ -46,14 +41,7 @@ public class SagaApplicationDefinitionParser extends AbstractSingleBeanDefinitio
             String appName = annotation.appName();
             String bizName = annotation.bizName();
 
-
-
         }
-
-
-
-
-        SagaLauncher.launch();
 
 
     }

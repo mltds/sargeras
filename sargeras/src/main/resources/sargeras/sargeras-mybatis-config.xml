@@ -9,8 +9,13 @@
 
     <typeAliases>
         <typeAlias alias="SagaRecord" type="org.mltds.sargeras.api.model.SagaRecord"/>
-        <typeAlias alias="ContextInfo" type="org.mltds.sargeras.spi.manager.rdbms.model.ContextInfoDO"/>
-        <typeAlias alias="ContextLock" type="org.mltds.sargeras.spi.manager.rdbms.model.ContextLockDO"/>
+        <typeAlias alias="SagaRecordParam" type="org.mltds.sargeras.api.model.SagaRecordParam"/>
+        <typeAlias alias="SagaRecordResult" type="org.mltds.sargeras.api.model.SagaRecordResult"/>
+        <typeAlias alias="SagaTxRecord" type="org.mltds.sargeras.api.model.SagaTxRecord"/>
+        <typeAlias alias="SagaTxRecordParam" type="org.mltds.sargeras.api.model.SagaTxRecordParam"/>
+        <typeAlias alias="SagaTxRecordResult" type="org.mltds.sargeras.api.model.SagaTxRecordResult"/>
+
+
     </typeAliases>
 
     <environments default="default">
@@ -21,7 +26,14 @@
     </environments>
 
     <mappers>
-        <mapper resource="sargeras/mapper/RecordMapper.xml"/>
+        <mapper resource="sargeras/mapper/SagaRecordMapper.xml"/>
+        <mapper resource="sargeras/mapper/SagaRecordParamMapper.xml"/>
+        <mapper resource="sargeras/mapper/SagaRecordResultMapper.xml"/>
+
+        <mapper resource="sargeras/mapper/SagaTxRecordMapper.xml"/>
+        <mapper resource="sargeras/mapper/SagaTxRecordParamMapper.xml"/>
+        <mapper resource="sargeras/mapper/SagaTxRecordResultMapper.xml"/>
+
 
 
         <!--<mapper resource="sargeras/mapper/ContextInfoMapper.xml"/>-->

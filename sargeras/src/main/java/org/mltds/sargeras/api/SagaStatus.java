@@ -6,11 +6,6 @@ package org.mltds.sargeras.api;
 public enum SagaStatus {
 
     /**
-     * 处理中，初始化状态
-     */
-    INIT,
-
-    /**
      * 处理中，正向执行中
      */
     EXECUTING,

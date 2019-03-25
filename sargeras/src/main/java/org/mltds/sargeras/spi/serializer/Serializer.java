@@ -1,11 +1,9 @@
 package org.mltds.sargeras.spi.serializer;
 
-import org.mltds.sargeras.spi.SagaBean;
-
 /**
  * @author sunyi.
  */
-public interface Serializer extends SagaBean {
+public interface Serializer {
 
     byte[] serialize(Object object);
 

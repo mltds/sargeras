@@ -2,12 +2,11 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="org.mltds.sargeras.spi.manager.rdbms.mapper.SagaTxRecordMapper">
+<mapper namespace="org.mltds.sargeras.spi.manager.rdbms.mapper.SagaRecordMapper">
 
-    <resultMap id="SagaTxRecordParamRM" type="SagaTxRecordParam">
+    <resultMap id="SagaRecordParamRM" type="SagaRecordParam">
         <id property="id" column="id"/>
         <result property="recordId" column="record_id"/>
-        <result property="txRecordId" column="tx_record_id"/>
         <result property="parameterType" column="parameter_type"/>
         <result property="parameterName" column="parameter_name"/>
         <result property="parameter" column="parameter"/>
@@ -20,17 +19,17 @@
             SELECT LAST_INSERT_ID() AS id
         </selectKey>
         INSERT INTO
-        saga_tx_record_param
-        (record_id, tx_record_id, parameter_type, parameter_name, parameter,create_time,modify_time)
+        saga_record_param
+        (record_id, parameter_type, parameter_name, parameter,create_time,modify_time)
         VALUES
         <foreach collection="list" item="param" index="index" separator=",">
-            (#{param.recordId},#{param.txRecordId},#{param.parameterType},#{param.parameterName},#{param.parameter},#{param.createTime},#{param.modifyTime})
+            (#{param.recordId},#{param.parameterType},#{param.parameterName},#{param.parameter},#{param.createTime},#{param.modifyTime})
         </foreach>
     </insert>
 
-    <select id="selectByTxRecordId" resultMap="SagaTxRecordParamRM">
-        SELECT * FROM saga_tx_record_param
-        WHERE tx_record_id = #{txRecordId}
+    <select id="selectByRecordId" resultMap="SagaRecordParamRM">
+        SELECT * FROM saga_record_param
+        WHERE record_id = #{recordId}
     </select>
 
 </mapper>

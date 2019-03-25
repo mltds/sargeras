@@ -5,33 +5,15 @@ import java.util.Date;
 /**
  * @author sunyi.
  */
-public class SagaTxRecordResult {
+public class SagaRecordParam {
 
     private Long id;
     private Long recordId;
-    private Long txRecordId;
-
-    private String cls;
-    private byte[] result;
-
+    private String parameterType;
+    private String parameterName;
+    private byte[] parameter;
     private Date createTime;
     private Date modifyTime;
-
-    public String getCls() {
-        return cls;
-    }
-
-    public void setCls(String cls) {
-        this.cls = cls;
-    }
-
-    public byte[] getResult() {
-        return result;
-    }
-
-    public void setResult(byte[] result) {
-        this.result = result;
-    }
 
     public Long getId() {
         return id;
@@ -49,12 +31,28 @@ public class SagaTxRecordResult {
         this.recordId = recordId;
     }
 
-    public Long getTxRecordId() {
-        return txRecordId;
+    public String getParameterType() {
+        return parameterType;
     }
 
-    public void setTxRecordId(Long txRecordId) {
-        this.txRecordId = txRecordId;
+    public void setParameterType(String parameterType) {
+        this.parameterType = parameterType;
+    }
+
+    public String getParameterName() {
+        return parameterName;
+    }
+
+    public void setParameterName(String parameterName) {
+        this.parameterName = parameterName;
+    }
+
+    public byte[] getParameter() {
+        return parameter;
+    }
+
+    public void setParameter(byte[] parameter) {
+        this.parameter = parameter;
     }
 
     public Date getCreateTime() {

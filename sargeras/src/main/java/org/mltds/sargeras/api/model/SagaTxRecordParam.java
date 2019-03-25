@@ -10,9 +10,11 @@ public class SagaTxRecordParam {
     private Long id;
     private Long recordId;
     private Long txRecordId;
+
     private String parameterType;
     private String parameterName;
     private byte[] parameter;
+
     private Date createTime;
     private Date modifyTime;
 

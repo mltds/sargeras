@@ -1,5 +1,6 @@
 package org.mltds.sargeras.api;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,13 +32,14 @@ public class Saga {
      * 枚举的属性不支持数组，因为数组的值是可变对象，所以需要一个 String 常量。 attribute value must be constant
      */
     public static final String DEFAULT_TRIGGER_INTERVAL_STR = "1,2,4,8,16,32,64,128";
-    public static final String TRIGGERINTERVAL_SPLIT_REGEX = ",";
+    public static final String TRIGGER_INTERVAL_SPLIT_REGEX = ",";
 
     private String appName;
     private String bizName;
 
     private Class<?> cls;
-    private String method;
+    private Object bean;
+    private Method method;
     private Class[] parameterTypes;
 
     private int lockTimeout;
@@ -55,7 +57,7 @@ public class Saga {
             throw new SagaException("错误格式的 triggerInterval：" + triggerInterval);
         }
 
-        String[] split = triggerInterval.split(TRIGGERINTERVAL_SPLIT_REGEX);
+        String[] split = triggerInterval.split(TRIGGER_INTERVAL_SPLIT_REGEX);
 
         if (split.length == 0) {
             throw new SagaException("错误格式的 triggerInterval：" + triggerInterval);
@@ -99,20 +101,28 @@ public class Saga {
         return cls;
     }
 
-    void setCls(Class<?> cls) {
+    public void setCls(Class<?> cls) {
         this.cls = cls;
     }
 
-    public String getMethod() {
+    public Object getBean() {
+        return bean;
+    }
+
+    public void setBean(Object bean) {
+        this.bean = bean;
+    }
+
+    public Method getMethod() {
         return method;
     }
 
-    void setMethod(String method) {
+    void setMethod(Method method) {
         this.method = method;
     }
 
-    public String getParameterTypes() {
-        return Arrays.toString(parameterTypes);
+    public Class[] getParameterTypes() {
+        return parameterTypes;
     }
 
     void setParameterTypes(Class[] parameterTypes) {
@@ -161,36 +171,31 @@ public class Saga {
 
     @Override
     public String toString() {
-        return "Saga{" + "appName='" + appName + '\'' + ", bizName='" + bizName + '\'' + ", cls=" + cls + ", method='" + method + '\'' + ", parameterTypes="
-                + Arrays.toString(parameterTypes) + '}';
+        return "Saga{" +
+                "appName='" + appName + '\'' +
+                ", bizName='" + bizName + '\'' +
+                ", cls=" + cls +
+                ", method=" + method +
+                ", parameterTypes=" + Arrays.toString(parameterTypes) +
+                '}';
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (!(o instanceof Saga))
-            return false;
+        if (this == o) return true;
+        if (!(o instanceof Saga)) return false;
 
         Saga saga = (Saga) o;
 
-        if (getLockTimeout() != saga.getLockTimeout())
-            return false;
-        if (getBizTimeout() != saga.getBizTimeout())
-            return false;
-        if (getAppName() != null ? !getAppName().equals(saga.getAppName()) : saga.getAppName() != null)
-            return false;
-        if (getBizName() != null ? !getBizName().equals(saga.getBizName()) : saga.getBizName() != null)
-            return false;
-        if (getCls() != null ? !getCls().equals(saga.getCls()) : saga.getCls() != null)
-            return false;
-        if (getMethod() != null ? !getMethod().equals(saga.getMethod()) : saga.getMethod() != null)
-            return false;
+        if (getLockTimeout() != saga.getLockTimeout()) return false;
+        if (getBizTimeout() != saga.getBizTimeout()) return false;
+        if (getAppName() != null ? !getAppName().equals(saga.getAppName()) : saga.getAppName() != null) return false;
+        if (getBizName() != null ? !getBizName().equals(saga.getBizName()) : saga.getBizName() != null) return false;
+        if (getCls() != null ? !getCls().equals(saga.getCls()) : saga.getCls() != null) return false;
+        if (getMethod() != null ? !getMethod().equals(saga.getMethod()) : saga.getMethod() != null) return false;
         // Probably incorrect - comparing Object[] arrays with Arrays.equals
-        if (getParameterTypes() != null ? !getParameterTypes().equals(saga.getParameterTypes()) : saga.getParameterTypes() != null)
-            return false;
-        if (!Arrays.equals(getTriggerInterval(), saga.getTriggerInterval()))
-            return false;
+        if (!Arrays.equals(getParameterTypes(), saga.getParameterTypes())) return false;
+        if (!Arrays.equals(getTriggerInterval(), saga.getTriggerInterval())) return false;
         return getListenerList() != null ? getListenerList().equals(saga.getListenerList()) : saga.getListenerList() == null;
     }
 
@@ -200,7 +205,7 @@ public class Saga {
         result = 31 * result + (getBizName() != null ? getBizName().hashCode() : 0);
         result = 31 * result + (getCls() != null ? getCls().hashCode() : 0);
         result = 31 * result + (getMethod() != null ? getMethod().hashCode() : 0);
-        result = 31 * result + (getParameterTypes() != null ? getParameterTypes().hashCode() : 0);
+        result = 31 * result + Arrays.hashCode(getParameterTypes());
         result = 31 * result + getLockTimeout();
         result = 31 * result + getBizTimeout();
         result = 31 * result + Arrays.hashCode(getTriggerInterval());

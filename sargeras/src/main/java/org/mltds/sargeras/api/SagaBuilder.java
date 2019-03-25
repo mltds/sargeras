@@ -1,5 +1,7 @@
 package org.mltds.sargeras.api;
 
+import java.lang.reflect.Method;
+
 import org.mltds.sargeras.api.listener.SagaListener;
 
 /**
@@ -30,12 +32,17 @@ public class SagaBuilder {
         return this;
     }
 
+    public SagaBuilder setBean(Object bean) {
+        saga.setBean(bean);
+        return this;
+    }
+
     public SagaBuilder setCls(Class<?> cls) {
         saga.setCls(cls);
         return this;
     }
 
-    public SagaBuilder setMethod(String method) {
+    public SagaBuilder setMethod(Method method) {
         saga.setMethod(method);
         return this;
     }
@@ -64,7 +71,7 @@ public class SagaBuilder {
     }
 
     /**
-     * @see #setTriggerInterval(int[]) 
+     * @see #setTriggerInterval(int[])
      */
     public SagaBuilder setTriggerInterval(String triggerInterval) {
         saga.setTriggerInterval(triggerInterval);

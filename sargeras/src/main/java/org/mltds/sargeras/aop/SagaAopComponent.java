@@ -2,24 +2,23 @@ package org.mltds.sargeras.aop;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.mltds.sargeras.api.*;
+import org.mltds.sargeras.api.SagaContext;
+import org.mltds.sargeras.api.SagaStatus;
+import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.annotation.SagaBizId;
+import org.mltds.sargeras.api.annotation.SagaTx;
 import org.mltds.sargeras.api.exception.SagaException;
 import org.mltds.sargeras.api.exception.expectation.Failure;
-import org.mltds.sargeras.api.listener.SagaListener;
+import org.mltds.sargeras.api.model.MethodInfo;
+import org.mltds.sargeras.api.model.ParamInfo;
 import org.mltds.sargeras.api.model.SagaTxRecord;
 import org.mltds.sargeras.api.model.SagaTxRecordParam;
-import org.mltds.sargeras.api.model.SagaTxRecordResult;
 import org.mltds.sargeras.spi.serializer.Serializer;
-import org.mltds.sargeras.utils.NULL;
 import org.mltds.sargeras.utils.Utils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,81 +47,106 @@ public class SagaAopComponent implements ApplicationContextAware {
         this.applicationContext = applicationContext;
     }
 
-    /**
-     * 获取Saga，如果获取不到则构建一个并放到 {@link SagaApplication} 里
-     */
-    public Saga getSaga(JoinPoint joinPoint) {
-
+    public org.mltds.sargeras.api.annotation.Saga getSaga(JoinPoint joinPoint) {
         MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
-
-        org.mltds.sargeras.api.annotation.Saga anno = methodSignature.getMethod().getAnnotation(org.mltds.sargeras.api.annotation.Saga.class);
-        String appName = anno.appName();
-        String bizName = anno.bizName();
-
-        Saga saga = SagaApplication.getSaga(appName, bizName);
-        if (saga != null) {
-            return saga;
-        }
-
-        Class<?> sagaCls = joinPoint.getTarget().getClass();
-        synchronized (sagaCls) {
-            saga = SagaApplication.getSaga(appName, bizName);
-            if (saga != null) {
-                return saga;
-            }
-
-            saga = buildSaga(joinPoint);
-        }
-
+        org.mltds.sargeras.api.annotation.Saga saga = methodSignature.getMethod().getAnnotation(org.mltds.sargeras.api.annotation.Saga.class);
         return saga;
+    }
+
+    public MethodInfo getMethodInfo(JoinPoint joinPoint) {
+        MethodInfo methodInfo = new MethodInfo();
+
+        Class<?> cls = joinPoint.getTarget().getClass();
+        methodInfo.setCls(cls);
+        methodInfo.setClsName(cls.getName());
+
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        methodInfo.setMethod(method);
+        methodInfo.setMethodName(method.getName());
+
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        methodInfo.setParameterTypes(parameterTypes);
+        methodInfo.setParameterTypesStr(Utils.parameterTypesToString(parameterTypes));
+
+        String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);
+        methodInfo.setParameterNames(parameterNames);
+        methodInfo.setParameterNamesStr(Utils.arrayToString(parameterNames));
+
+        methodInfo.setParameters(joinPoint.getArgs());
+
+        return methodInfo;
 
     }
 
+    public MethodInfo getCompensateMethodInfo(MethodInfo executeMethodInfo) {
+        Method executeMethod = executeMethodInfo.getMethod();
+        SagaTx sagaTx = executeMethod.getAnnotation(SagaTx.class);
+        String compensateMethodName = sagaTx.compensate();
+
+        if (StringUtils.isBlank(compensateMethodName)) {
+            return null;
+        }
+
+        Class<?> cls = executeMethodInfo.getCls();
+
+        Method compensateMethod = ReflectionUtils.findMethod(cls, compensateMethodName);
+
+        MethodInfo compensateMethodInfo = new MethodInfo();
+
+        compensateMethodInfo.setCls(cls);
+        compensateMethodInfo.setClsName(cls.getName());
+
+        compensateMethodInfo.setMethod(compensateMethod);
+        compensateMethodInfo.setMethodName(compensateMethodName);
+
+        Class<?>[] parameterTypes = compensateMethod.getParameterTypes();
+        compensateMethodInfo.setParameterTypes(parameterTypes);
+        compensateMethodInfo.setParameterTypesStr(Utils.parameterTypesToString(parameterTypes));
+
+        String[] parameterNames = parameterNameDiscoverer.getParameterNames(compensateMethod);
+        compensateMethodInfo.setParameterNames(parameterNames);
+        compensateMethodInfo.setParameterNamesStr(Utils.arrayToString(parameterNames));
+
+        return compensateMethodInfo;
+
+    }
+
+    public List<ParamInfo> getParamInfoList(MethodInfo methodInfo) {
+
+        String[] parameterNames = methodInfo.getParameterNames();
+        Set<String> set = new HashSet<>();
+        set.addAll(Arrays.asList(parameterNames));
+
+        return getParamInfoList(methodInfo, set);
+    }
+
     /**
-     * 构建一个 Saga
+     *
+     * @param methodInfo
+     * @param parameterNames 只获取这些参数名的参数信息
+     * @return
      */
-    public Saga buildSaga(JoinPoint joinPoint) {
-        Class<?> cls = joinPoint.getTarget().getClass();
-        String method = joinPoint.getSignature().getName();
-        Class[] parameterTypes = new Class[joinPoint.getArgs().length];
-        Object[] args = joinPoint.getArgs();
-        for (int i = 0; i < args.length; i++) {
-            if (args[i] != null) {
-                parameterTypes[i] = args[i].getClass();
-            } else {
-                parameterTypes[i] = null;
+    public List<ParamInfo> getParamInfoList(MethodInfo methodInfo, Collection<String> parameterNames) {
+
+        List<ParamInfo> paramInfoList = new ArrayList<>(parameterNames.size());
+        String[] parameterNamesArray = methodInfo.getParameterNames();
+
+        for (int i = 0; i < parameterNamesArray.length; i++) {
+            String parameterName = parameterNamesArray[i];
+            if (parameterNames.contains(parameterName)) {
+                ParamInfo paramInfo = new ParamInfo();
+                paramInfo.setParameterName(parameterName);
+                Class parameterType = methodInfo.getParameterTypes()[i];
+                paramInfo.setParameterType(parameterType);
+                paramInfo.setParameterTypeStr(parameterType.getName());
+                paramInfo.setParameter(methodInfo.getParameters()[i]);
+                paramInfo.setParameterByte(serializer.serialize(paramInfo.getParameter()));
+
+                paramInfoList.add(paramInfo);
             }
         }
 
-        org.mltds.sargeras.api.annotation.Saga anno =
-                ((MethodSignature) joinPoint.getSignature()).getMethod().getAnnotation(org.mltds.sargeras.api.annotation.Saga.class);
-        String appName = anno.appName();
-        String bizName = anno.bizName();
-        int bizTimeout = anno.bizTimeout();
-        int lockTimeout = anno.lockTimeout();
-        String triggerInterval = anno.triggerInterval();
-        Class<? extends SagaListener>[] listeners = anno.listeners();
-
-        SagaBuilder builder = SagaBuilder.newBuilder();
-        builder.setAppName(appName)//
-                .setBizName(bizName)//
-                .setCls(cls)//
-                .setMethod(method)//
-                .setParamTypes(parameterTypes)//
-                .setBizTimeout(bizTimeout)//
-                .setLockTimeout(lockTimeout)//
-                .setTriggerInterval(triggerInterval)//
-        ;
-
-        for (Class<? extends SagaListener> listener : listeners) {
-            SagaListener bean = applicationContext.getBean(listener);
-            if (bean == null) {
-                throw new SagaException(cls + "#" + method + " 配置Listener: " + listener + " 失败, Listener 需要为 Spring Bean");
-            }
-            builder.addListener(bean);
-        }
-
-        return builder.build();
+        return paramInfoList;
     }
 
     /**
@@ -147,8 +171,7 @@ public class SagaAopComponent implements ApplicationContextAware {
 
         if (bizIdIndex < 0) {
             Class<?> cls = joinPoint.getTarget().getClass();
-            String methodName = joinPoint.getSignature().getName();
-            throw new SagaException(cls + "#" + method + " 需要传入一个 @SagaBizId");
+            throw new SagaException(cls + "#" + method.getName() + " 需要传入一个 @SagaBizId");
         }
 
         return joinPoint.getArgs()[bizIdIndex].toString();
@@ -237,135 +260,4 @@ public class SagaAopComponent implements ApplicationContextAware {
 
     }
 
-    public Object doExecute(ProceedingJoinPoint proceedingJoinPoint, SagaTxRecord txRecord) throws Throwable {
-
-        SagaContext context = aopHolder.getContext();
-
-        Object result;
-        try {
-            // 执行
-            result = proceedingJoinPoint.proceed(proceedingJoinPoint.getArgs());
-            // 保存结果
-            saveTxRecordResult(txRecord.getRecordId(), txRecord.getId(), result);
-            return result;
-        } catch (Throwable throwable) {
-            if (throwable instanceof Failure) {
-                context.saveTxStatus(txRecord.getId(), SagaTxStatus.FAILURE);
-            } else {
-                // 其他异常情况全部视为处理中
-                context.saveTxStatus(txRecord.getId(), SagaTxStatus.PROCESSING);
-            }
-            throw throwable;
-        }
-    }
-
-    public SagaTxRecord saveTxRecordAndParam(ProceedingJoinPoint proceedingJoinPoint) {
-
-        SagaContext context = aopHolder.getContext();
-
-        MethodSignature methodSignature = (MethodSignature) proceedingJoinPoint.getSignature();
-        Method method = methodSignature.getMethod();
-        org.mltds.sargeras.api.annotation.SagaTx sagaTx = method.getAnnotation(org.mltds.sargeras.api.annotation.SagaTx.class);
-        boolean persistent = sagaTx.paramPersistent();
-
-        SagaTxRecord txRecord = new SagaTxRecord();
-        txRecord.setRecordId(context.getRecordId());
-
-        String cls = proceedingJoinPoint.getTarget().getClass().getName();
-        txRecord.setCls(cls);
-
-        String methodName = method.getName();
-        txRecord.setMethod(methodName);
-
-        String compensate = sagaTx.compensate();
-        txRecord.setCompensateMethod(compensate);
-
-        Class<?>[] parameterTypesClass = method.getParameterTypes();
-        String parameterTypesStr = Utils.parameterTypesToString(parameterTypesClass);
-        txRecord.setParameterTypes(parameterTypesStr);
-
-        String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);
-        String parameterNamesStr = Utils.arrayToString(parameterNames);
-        txRecord.setParameterNames(parameterNamesStr);
-
-        txRecord.setStatus(SagaTxStatus.PROCESSING);
-
-        List<SagaTxRecordParam> txRecordParamList = null;
-
-        if (persistent && parameterTypesClass != null) {
-            int paramCount = parameterTypesClass.length;
-            txRecordParamList = new ArrayList<>(paramCount);
-
-            Object[] args = proceedingJoinPoint.getArgs();
-
-            for (int i = 0; i < paramCount; i++) {
-                SagaTxRecordParam param = new SagaTxRecordParam();
-                param.setRecordId(context.getRecordId());
-                param.setParameterType(parameterTypesClass[i].getName());
-                param.setParameterName(parameterNames[i]);
-                param.setParameter(serializer.serialize(args[i]));
-
-                txRecordParamList.add(param);
-            }
-
-        }
-
-        return context.saveCurrentTxAndParam(txRecord, txRecordParamList);
-
-    }
-
-    public SagaTxRecord getPreviousTxRecord(ProceedingJoinPoint proceedingJoinPoint) {
-
-        SagaContext context = aopHolder.getContext();
-
-        String cls = proceedingJoinPoint.getTarget().getClass().getName();
-
-        MethodSignature methodSignature = (MethodSignature) proceedingJoinPoint.getSignature();
-        Method method = methodSignature.getMethod();
-        String methodName = method.getName();
-
-        Class<?>[] parameterTypesClass = method.getParameterTypes();
-        String parameterTypesStr = Utils.parameterTypesToString(parameterTypesClass);
-
-        List<SagaTxRecord> txRecordList = context.getTxRecordList();
-        for (SagaTxRecord txRecord : txRecordList) {
-            if (txRecord.getCls().equals(cls) && txRecord.getMethod().equals(methodName) && txRecord.getParameterTypes().equals(parameterTypesStr)) {
-                return txRecord;
-            }
-        }
-
-        return null;
-
-    }
-
-    public void saveTxRecordResult(Long sagaRecordId, Long sagaTxRecord, Object result) {
-
-        SagaContext context = aopHolder.getContext();
-
-        SagaTxRecordResult recordResult = new SagaTxRecordResult();
-        recordResult.setRecordId(sagaRecordId);
-        recordResult.setTxRecordId(sagaTxRecord);
-        if (result == null) {
-            recordResult.setCls(NULL.class.getName());
-        } else {
-            recordResult.setCls(result.getClass().getName());
-            recordResult.setResult(serializer.serialize(result));
-        }
-
-        context.saveTxRecordSuccAndResult(recordResult);
-
-    }
-
-    public Object getTxRecordResult(Long sagaTxRecord) {
-
-        SagaContext context = aopHolder.getContext();
-
-        SagaTxRecordResult txRecordResult = context.getTxRecordResult(sagaTxRecord);
-        Class resultCls = Utils.loadClass(txRecordResult.getCls());
-        if (NULL.class.equals(resultCls)) {
-            return null;
-        } else {
-            return serializer.deserialize(txRecordResult.getResult(), resultCls);
-        }
-    }
 }

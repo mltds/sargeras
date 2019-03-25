@@ -1,7 +1,6 @@
 package org.mltds.sargeras.example.example1.txs;
 
 import org.mltds.sargeras.api.SagaContext;
-import org.mltds.sargeras.api.SagaTx;
 import org.mltds.sargeras.api.SagaTxStatus;
 
 public class BookCar implements SagaTx {

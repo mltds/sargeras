@@ -6,7 +6,7 @@
 
     <resultMap id="ContextInfoRM" type="ContextInfo">
         <id property="id" column="id"/>
-        <result property="contextId" column="context_id"/>
+        <result property="recordId" column="context_id"/>
         <result property="key" column="key"/>
         <result property="info" column="info"/>
         <result property="createTime" column="create_time"/>
@@ -21,7 +21,7 @@
         saga_context_info
         (context_id, `key`, info, create_time, modify_time)
         VALUES
-        (#{contextId},#{key},#{info},#{createTime},#{modifyTime})
+        (#{recordId},#{key},#{info},#{createTime},#{modifyTime})
     </insert>
 
     <update id="updateById" parameterType="ContextInfo">
@@ -31,12 +31,12 @@
 
     <update id="updateByKey" parameterType="ContextInfo">
         UPDATE saga_context_info SET info = #{info} , modify_time = #{modifyTime}
-        WHERE context_id = #{contextId} and `key` = #{key}
+        WHERE context_id = #{recordId} and `key` = #{key}
     </update>
 
     <select id="selectByKey" resultMap="ContextInfoRM">
         SELECT * FROM saga_context_info
-        WHERE context_id = #{contextId} and `key` = #{key}
+        WHERE context_id = #{recordId} and `key` = #{key}
     </select>
 
 </mapper>

@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Param;
+import org.mltds.sargeras.api.SagaStatus;
 import org.mltds.sargeras.api.model.SagaRecord;
 
 /**
@@ -13,24 +14,19 @@ public interface SagaRecordMapper {
 
     int insert(SagaRecord sagaRecord);
 
-    SagaRecord selectById(Long id);
+    void updateStatus(@Param("id") long id, @Param("status") SagaStatus status, @Param("modifyTime") Date modifyTime);
+
+    int updateForLock(@Param("id") long id, @Param("oldTriggerId") String oldTriggerId, @Param("newTriggerId") String newTriggerId,
+            @Param("lockExpireTime") Date lockExpireTime);
+
+    int updateForUnlock(@Param("id") long id, @Param("oldTriggerId") String triggerId);
+
+    int updateNextTriggerTimeAndIncrementCount(@Param("id") long id, @Param("nextTriggerTime") Date nextTriggerTime, @Param("modifyTime") Date modifyTime);
+
+    SagaRecord selectById(long id);
 
     SagaRecord selectByBiz(String appName, String bizName, String bizId);
 
-    /**
-     * 仅更新有限的字段(status,pre_executed_tx，pre_compensated_tx,modify_time)通用方法
-     */
-    int updateById(SagaRecord sagaRecord);
-
-    int incrementTriggerCount(@Param("id") Long id, @Param("modifyTime") Date modifyTime);
-
-
-    int updateForLock(@Param("id") Long id, @Param("triggerId") String triggerId, @Param("expireTime") Date expireTime);
-
-    int updateForLock(@Param("id") Long id, @Param("oldTriggerId") String oldTriggerId, @Param("newTriggerId") String newTriggerId, @Param("expireTime") Date expireTime);
-
-    int updateForUnlock(@Param("id") Long id, @Param("triggerId") String triggerId);
-
-    List<Long> findNeedRetryRecordList(@Param("beforeTriggerTime") Date beforeTriggerTime, @Param("limit") int limit);
+    List<Long> selectNeedRetryRecordList(@Param("beforeTriggerTime") Date beforeTriggerTime, @Param("limit") int limit);
 
 }

@@ -5,11 +5,10 @@ import java.util.Date;
 /**
  * @author sunyi.
  */
-public class SagaTxRecordResult {
+public class SagaRecordResult {
 
     private Long id;
     private Long recordId;
-    private Long txRecordId;
 
     private String cls;
     private byte[] result;
@@ -47,14 +46,6 @@ public class SagaTxRecordResult {
 
     public void setRecordId(Long recordId) {
         this.recordId = recordId;
-    }
-
-    public Long getTxRecordId() {
-        return txRecordId;
-    }
-
-    public void setTxRecordId(Long txRecordId) {
-        this.txRecordId = txRecordId;
     }
 
     public Date getCreateTime() {

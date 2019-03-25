@@ -12,6 +12,10 @@ public class SagaRecord {
     private String bizName;
     private String bizId;
 
+    private String cls;
+    private String method;
+    private String parameterTypes;
+
     private SagaStatus status;
 
     /**
@@ -78,6 +82,30 @@ public class SagaRecord {
 
     public void setBizId(String bizId) {
         this.bizId = bizId;
+    }
+
+    public String getCls() {
+        return cls;
+    }
+
+    public void setCls(String cls) {
+        this.cls = cls;
+    }
+
+    public String getMethod() {
+        return method;
+    }
+
+    public void setMethod(String method) {
+        this.method = method;
+    }
+
+    public String getParameterTypes() {
+        return parameterTypes;
+    }
+
+    public void setParameterTypes(String parameterTypes) {
+        this.parameterTypes = parameterTypes;
     }
 
     public SagaStatus getStatus() {
