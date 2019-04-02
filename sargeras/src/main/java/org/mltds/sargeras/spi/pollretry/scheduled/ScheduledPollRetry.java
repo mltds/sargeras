@@ -1,4 +1,4 @@
-package org.mltds.sargeras.spi.pollretry.defaultimpl;
+package org.mltds.sargeras.spi.pollretry.scheduled;
 
 import java.lang.reflect.Method;
 import java.util.Date;
@@ -11,8 +11,9 @@ import java.util.concurrent.ThreadFactory;
 
 import org.mltds.sargeras.api.Saga;
 import org.mltds.sargeras.api.SagaConfig;
-import org.mltds.sargeras.api.SagaContext;
 import org.mltds.sargeras.api.model.SagaRecordParam;
+import org.mltds.sargeras.core.SagaContext;
+import org.mltds.sargeras.core.SagaContextFactory;
 import org.mltds.sargeras.spi.manager.Manager;
 import org.mltds.sargeras.spi.pollretry.PollRetry;
 import org.mltds.sargeras.spi.serializer.Serializer;
@@ -24,11 +25,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.stereotype.Component;
 
 /**
  * @author sunyi.
  */
-public class DefaultPollRetry implements PollRetry, ApplicationContextAware {
+@Component
+public class ScheduledPollRetry implements PollRetry, ApplicationContextAware {
 
     public static final String POLLRETRY_PREFIX = "pollretry.default.";
     /**
@@ -44,13 +47,16 @@ public class DefaultPollRetry implements PollRetry, ApplicationContextAware {
      */
     public static final String POLLRETRY_INTERVAL = POLLRETRY_PREFIX + "interval";
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultPollRetry.class);
+    private static final Logger logger = LoggerFactory.getLogger(ScheduledPollRetry.class);
 
     @Autowired
     private Manager manager;
 
     @Autowired
     private Serializer serializer;
+
+    @Autowired
+    private SagaContextFactory sagaContextFactory;
 
     private ApplicationContext applicationContext;
 
@@ -103,7 +109,7 @@ public class DefaultPollRetry implements PollRetry, ApplicationContextAware {
                     for (Long recordId : needRetryRecordListList) {
                         try {
 
-                            SagaContext context = SagaContext.loadContext(recordId);
+                            SagaContext context = sagaContextFactory.loadContext(recordId);
 
                             List<SagaRecordParam> recordParamList = context.getRecordParam(recordId);
 

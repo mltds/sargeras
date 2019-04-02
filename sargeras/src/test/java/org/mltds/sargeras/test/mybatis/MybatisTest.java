@@ -20,7 +20,7 @@ public class MybatisTest {
 
     @Before
     public void init() throws IOException {
-        String resource = "sargeras/sargeras-mybatis-config.xml";
+        String resource = "sargeras/mybatis/sargeras-mybatis-config.xml";
         InputStream inputStream = Resources.getResourceAsStream(resource);
         sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
     }

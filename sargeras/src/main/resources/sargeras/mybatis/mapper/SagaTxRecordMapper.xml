@@ -28,7 +28,7 @@
         (#{recordId},#{cls},#{method},#{compensateMethod},#{parameterTypes},#{parameterNames},#{status},#{createTime},#{modifyTime})
     </insert>
 
-    <update id="updateById" parameterType="ContextInfo">
+    <update id="updateById" parameterType="SagaTxRecord">
         UPDATE saga_tx_record
         <set>
             <if test="status != null">

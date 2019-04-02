@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd
+       ">
+
+    <context:component-scan base-package="org.mltds.sargeras.spi.manager.rdbms"/>
+
+    <mybatis:scan base-package="org.mltds.sargeras.spi.manager.rdbms.mapper"/>
+
+    <tx:annotation-driven transaction-manager="sagaTransactionManager"/>
+
+    <bean id="sagaSqlSessionFactory"
+          class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--数据源交给外部定义-->
+        <property name="dataSource" ref="sagaDataSource"/>
+        <property name="configLocation" value="classpath:sargeras/mybatis/sargeras-mybatis-config.xml"/>
+    </bean>
+
+    <bean id="sagaTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <!--数据源交给外部定义-->
+        <constructor-arg ref="sagaDataSource"/>
+    </bean>
+
+
+</beans>

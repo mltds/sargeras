@@ -1,7 +1,10 @@
-package org.mltds.sargeras.api;
+package org.mltds.sargeras.core;
 
 import java.util.*;
 
+import org.mltds.sargeras.api.Saga;
+import org.mltds.sargeras.api.SagaStatus;
+import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.exception.SagaException;
 import org.mltds.sargeras.api.exception.SagaLockFailException;
 import org.mltds.sargeras.api.model.*;
@@ -16,13 +19,13 @@ import org.mltds.sargeras.spi.manager.Manager;
  */
 public class SagaContext {
 
-    private static Manager manager = SagaApplication.getManager();
+    Saga saga;
+    SagaRecord record;
+    List<SagaTxRecord> txRecordList;
 
-    private Saga saga;
-    private SagaRecord record;
-    private List<SagaTxRecord> txRecordList;
+    Manager manager;
 
-    private SagaContext() {
+    SagaContext() {
 
     }
 
@@ -30,34 +33,6 @@ public class SagaContext {
 
         SagaContext context = new SagaContext();
         context.saga = saga;
-        return context;
-    }
-
-    public static SagaContext loadContext(String appName, String bizName, String bizId) {
-        SagaContext context = new SagaContext();
-
-        SagaRecord record = manager.findRecord(appName, bizName, bizId);
-
-        String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        record.setTriggerId(triggerId);
-
-        context.record = record;
-        context.saga = SagaApplication.getSaga(appName, bizName);
-
-        return context;
-    }
-
-    public static SagaContext loadContext(long recordId) {
-        SagaContext context = new SagaContext();
-
-        SagaRecord record = manager.findRecord(recordId);
-
-        String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        record.setTriggerId(triggerId);
-
-        context.record = record;
-        context.saga = SagaApplication.getSaga(context.getAppName(), context.getBizName());
-
         return context;
     }
 

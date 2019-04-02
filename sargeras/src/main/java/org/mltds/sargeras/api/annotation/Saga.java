@@ -4,7 +4,6 @@ import java.lang.annotation.*;
 
 import org.mltds.sargeras.api.listener.SagaListener;
 
-import com.sun.istack.internal.NotNull;
 
 import static org.mltds.sargeras.api.Saga.*;
 
@@ -17,10 +16,8 @@ import static org.mltds.sargeras.api.Saga.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Saga {
 
-    @NotNull
     String appName();
 
-    @NotNull
     String bizName();
 
     Class<? extends SagaListener>[] listeners();

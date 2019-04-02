@@ -9,16 +9,15 @@ import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.model.*;
 import org.mltds.sargeras.spi.manager.Manager;
 import org.mltds.sargeras.spi.manager.rdbms.mapper.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @author sunyi
  */
+@Component
 public class RdbmsManager implements Manager {
-
-    private static final Logger logger = LoggerFactory.getLogger(RdbmsManager.class);
 
     @Autowired
     private SagaRecordMapper sagaRecordMapper;
@@ -36,7 +35,7 @@ public class RdbmsManager implements Manager {
     private SagaTxRecordResultMapper sagaTxRecordResultMapper;
 
     @Override
-    @Transaction
+    @Transactional
     public long firstTrigger(SagaRecord record, List<SagaRecordParam> recordParamList) {
 
         Date now = new Date();
@@ -57,7 +56,7 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    @Transaction
+    @Transactional
     public boolean trigger(Long recordId, String triggerId, Date nextTriggerTime, Date lockExpireTime) {
 
         boolean locked;
@@ -114,7 +113,7 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    @Transaction
+    @Transactional
     public long saveTxRecordAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> paramList) {
 
         sagaTxRecordMapper.insert(txRecord);
@@ -149,7 +148,6 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    @Transaction
     public void saveTxRecordSuccAndResult(SagaTxRecordResult recordResult) {
 
         Long txRecordId = recordResult.getTxRecordId();

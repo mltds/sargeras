@@ -84,7 +84,6 @@ public class SagaBuilder {
     }
 
     public Saga build() {
-        SagaApplication.addSaga(saga);// cache saga
         return saga;
     }
 

@@ -1,4 +1,4 @@
-package org.mltds.sargeras.aop;
+package org.mltds.sargeras.core.aop;
 
 import java.util.Date;
 import java.util.List;
@@ -12,6 +12,9 @@ import org.mltds.sargeras.api.exception.expectation.Failure;
 import org.mltds.sargeras.api.listener.SagaListener;
 import org.mltds.sargeras.api.model.MethodInfo;
 import org.mltds.sargeras.api.model.ParamInfo;
+import org.mltds.sargeras.core.SagaApplication;
+import org.mltds.sargeras.core.SagaContext;
+import org.mltds.sargeras.core.SagaContextFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -29,6 +32,12 @@ public class SagaAspect implements ApplicationContextAware {
     @Autowired
     private SagaAopComponent aopComponent;
 
+    @Autowired
+    private SagaApplication sagaApplication;
+
+    @Autowired
+    private SagaContextFactory sagaContextFactory;
+
     private ApplicationContext applicationContext;
 
     @Pointcut("@annotation(org.mltds.sargeras.api.annotation.Saga)")
@@ -44,7 +53,7 @@ public class SagaAspect implements ApplicationContextAware {
         String bizName = sagaAnnotation.bizName();
         String bizId = aopComponent.getBizId(joinPoint);
 
-        SagaContext context = SagaContext.loadContext(appName, bizName, bizId);
+        SagaContext context = sagaContextFactory.loadContext(appName, bizName, bizId);
 
         if (context == null) {// 首次执行
             MethodInfo methodInfo = aopComponent.getMethodInfo(joinPoint);
@@ -129,7 +138,7 @@ public class SagaAspect implements ApplicationContextAware {
         String appName = anno.appName();
         String bizName = anno.bizName();
 
-        Saga saga = SagaApplication.getSaga(appName, bizName);
+        Saga saga = sagaApplication.getSaga(appName, bizName);
         if (saga != null) {
             return saga;
         }
@@ -171,7 +180,9 @@ public class SagaAspect implements ApplicationContextAware {
             builder.addListener(l);
         }
 
-        return builder.build();
+        Saga saga = builder.build();
+        sagaApplication.addSaga(saga);
+        return saga;
     }
 
     @Override

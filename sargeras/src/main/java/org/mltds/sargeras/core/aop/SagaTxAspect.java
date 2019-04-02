@@ -1,4 +1,4 @@
-package org.mltds.sargeras.aop;
+package org.mltds.sargeras.core.aop;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.mltds.sargeras.api.SagaContext;
+import org.mltds.sargeras.core.SagaContext;
 import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.exception.expectation.Failure;
 import org.mltds.sargeras.api.model.*;

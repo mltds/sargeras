@@ -1,4 +1,4 @@
-package org.mltds.sargeras.aop;
+package org.mltds.sargeras.core.aop;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -7,7 +7,7 @@ import java.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.mltds.sargeras.api.SagaContext;
+import org.mltds.sargeras.core.SagaContext;
 import org.mltds.sargeras.api.SagaStatus;
 import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.annotation.SagaBizId;
@@ -25,11 +25,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
 
 /**
  * @author sunyi.
  */
+@Component
 public class SagaAopComponent implements ApplicationContextAware {
 
     private ApplicationContext applicationContext;
