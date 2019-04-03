@@ -127,7 +127,7 @@ public class ScheduledPollRetry implements PollRetry, ApplicationContextAware {
                                 String parameterName = parameterNames[i];
                                 SagaRecordParam recordParam = recordParamMap.get(parameterName);
                                 if (recordParam != null) {
-                                    Object arg = serializer.deserialize(recordParam.getParameter(), Utils.loadClass(recordParam.getParameterType()));
+                                    Object arg = serializer.decode(recordParam.getParameter(), Utils.loadClass(recordParam.getParameterType()));
                                     args[i] = arg;
                                 }
                             }

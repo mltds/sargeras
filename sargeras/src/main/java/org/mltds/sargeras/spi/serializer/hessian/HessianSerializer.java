@@ -18,14 +18,17 @@ import com.alibaba.com.caucho.hessian.io.Hessian2Output;
 @Component
 public class HessianSerializer implements Serializer {
 
+
     @Override
-    public byte[] serialize(Object object) {
+    public byte[] encode(Object object) {
 
         ByteArrayOutputStream os = null;
         try {
             os = new ByteArrayOutputStream();
             Hessian2Output output = new Hessian2Output(os);
+            output.setSerializerFactory(HessianSerializerFactory.SERIALIZER_FACTORY);
             output.writeObject(object);
+            output.flushBuffer();
             byte[] bytes = os.toByteArray();
             return bytes;
         } catch (IOException e) {
@@ -37,13 +40,13 @@ public class HessianSerializer implements Serializer {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T deserialize(byte[] bytes, Class<T> cls) {
+    public <T> T decode(byte[] bytes, Class<T> cls) {
         ByteArrayInputStream is = null;
         Hessian2Input his = null;
         try {
             is = new ByteArrayInputStream(bytes);
             his = new Hessian2Input(is);
-            his.close();
+            his.setSerializerFactory(HessianSerializerFactory.SERIALIZER_FACTORY);
             return (T) his.readObject(cls);
         } catch (IOException e) {
             throw new SagaException("反序列化数据时失败, Cls: " + cls.getName());

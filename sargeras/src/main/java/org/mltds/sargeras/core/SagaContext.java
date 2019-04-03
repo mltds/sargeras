@@ -29,13 +29,6 @@ public class SagaContext {
 
     }
 
-    public static SagaContext newContext(Saga saga) {
-
-        SagaContext context = new SagaContext();
-        context.saga = saga;
-        return context;
-    }
-
     public void firstTrigger(String bizId, MethodInfo methodInfo, List<ParamInfo> paramInfoList) {
         SagaRecord record = new SagaRecord();
         record.setAppName(saga.getAppName());
@@ -123,6 +116,11 @@ public class SagaContext {
 
     public void saveStatus(SagaStatus status) {
         manager.saveRecordStatus(record.getId(), status);
+        record.setStatus(status);
+    }
+
+    public void saveStatusAndResult(SagaStatus status, SagaRecordResult recordResult) {
+        manager.saveRecordStatusAndResult(record.getId(), status, recordResult);
         record.setStatus(status);
     }
 

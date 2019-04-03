@@ -9,7 +9,6 @@ public class BookResult {
     public String errorMessage;
 
     public String bizId;
-    public FamilyMember member;
     public String carOrderNo;
     public String aireOrderNo;
     public String hotelOrderNo;

@@ -1,11 +1,12 @@
 package org.mltds.sargeras.core;
 
+import java.util.UUID;
+
+import org.mltds.sargeras.api.Saga;
 import org.mltds.sargeras.api.model.SagaRecord;
 import org.mltds.sargeras.spi.manager.Manager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.UUID;
 
 /**
  * @author sunyi.
@@ -19,12 +20,20 @@ public class SagaContextFactory {
     @Autowired
     private Manager manager;
 
-
-
-    public  SagaContext loadContext(String appName, String bizName, String bizId) {
+    public SagaContext newContext(Saga saga) {
         SagaContext context = new SagaContext();
+        context.saga = saga;
+        context.manager = manager;
+        return context;
+    }
+
+    public SagaContext loadContext(String appName, String bizName, String bizId) {
 
         SagaRecord record = manager.findRecord(appName, bizName, bizId);
+        if (record == null) {
+            return null;
+        }
+        SagaContext context = new SagaContext();
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         record.setTriggerId(triggerId);
@@ -36,10 +45,14 @@ public class SagaContextFactory {
         return context;
     }
 
-    public  SagaContext loadContext(long recordId) {
-        SagaContext context = new SagaContext();
+    public SagaContext loadContext(long recordId) {
 
         SagaRecord record = manager.findRecord(recordId);
+        if (record == null) {
+            return null;
+        }
+
+        SagaContext context = new SagaContext();
 
         String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         record.setTriggerId(triggerId);

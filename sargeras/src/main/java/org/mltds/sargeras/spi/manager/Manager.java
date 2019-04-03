@@ -31,9 +31,9 @@ public interface Manager {
     boolean triggerOver(Long recordId, String triggerId);
 
     /**
-     * 根据 ContextId 从存储的信息中，重新构建出一个 {@link SagaRecord}
+     * 根据 RecordId 从存储的信息中，重新构建出一个 {@link SagaRecord}
      */
-    SagaRecord findRecord(long contextId);
+    SagaRecord findRecord(long recordId);
 
     /**
      * 根据 BizId 从存储的信息中，重新构建出一个 {@link SagaRecord}
@@ -51,13 +51,18 @@ public interface Manager {
     /**
      * 保存状态并更新ModifyTime
      */
-    void saveRecordStatus(long contextId, SagaStatus status);
+    void saveRecordStatus(long recordId, SagaStatus status);
 
     /**
-     * 查询出需要轮询重试的 Context Id List
+     * 保存状态并更新ModifyTime
+     */
+    void saveRecordStatusAndResult(long recordId, SagaStatus status,SagaRecordResult recordResult);
+
+    /**
+     * 查询出需要轮询重试的 Record Id List
      * 
      * @param limit 返回最多条数，参见数据库的 limit。
-     * @return Context ID 的集合
+     * @return Record ID 的集合
      */
     List<Long> findNeedRetryRecordList(Date beforeTriggerTime, int limit);
 

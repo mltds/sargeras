@@ -15,6 +15,7 @@ public class SagaTxRecord {
     private String method;
     private String compensateMethod;
     private String parameterTypes;
+    private String parameterNames;
     private SagaTxStatus status;
     private Date createTime;
     private Date modifyTime;

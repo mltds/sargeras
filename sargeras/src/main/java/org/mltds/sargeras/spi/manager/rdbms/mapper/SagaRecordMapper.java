@@ -25,7 +25,7 @@ public interface SagaRecordMapper {
 
     SagaRecord selectById(long id);
 
-    SagaRecord selectByBiz(String appName, String bizName, String bizId);
+    SagaRecord selectByBiz(@Param("appName") String appName, @Param("bizName") String bizName, @Param("bizId") String bizId);
 
     List<Long> selectNeedRetryRecordList(@Param("beforeTriggerTime") Date beforeTriggerTime, @Param("limit") int limit);
 

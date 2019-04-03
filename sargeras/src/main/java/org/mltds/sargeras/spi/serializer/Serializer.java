@@ -5,8 +5,8 @@ package org.mltds.sargeras.spi.serializer;
  */
 public interface Serializer {
 
-    byte[] serialize(Object object);
+    byte[] encode(Object object);
 
-    <T> T deserialize(byte[] bytes, Class<T> cls);
+    <T> T decode(byte[] bytes, Class<T> cls);
 
 }

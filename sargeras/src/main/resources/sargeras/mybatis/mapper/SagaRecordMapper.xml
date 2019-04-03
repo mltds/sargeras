@@ -30,10 +30,10 @@
         `locked`,`lock_expire_time`,
         `expire_time`,`create_time`,`modify_time`)
         VALUES
-        (#{appName},#{bizName},#{bizId},#{status},
-        #{triggerId},#{triggerCount},#{nextTriggerTime},
-        #{locked},#{lockExpireTime}
-        #{expireTime},#{createTime},#{modifyTime})
+        (#{appName}, #{bizName}, #{bizId}, #{status},
+        #{triggerId}, #{triggerCount}, #{nextTriggerTime},
+        #{locked}, #{lockExpireTime},
+        #{expireTime}, #{createTime}, #{modifyTime})
     </insert>
 
 

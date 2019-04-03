@@ -4,6 +4,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.mltds.sargeras.api.SagaStatus;
 import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.model.*;
@@ -26,6 +27,9 @@ public class RdbmsManager implements Manager {
     private SagaRecordParamMapper sagaRecordParamMapper;
 
     @Autowired
+    private SagaRecordResultMapper recordResultMapper;
+
+    @Autowired
     private SagaTxRecordMapper sagaTxRecordMapper;
 
     @Autowired
@@ -35,7 +39,7 @@ public class RdbmsManager implements Manager {
     private SagaTxRecordResultMapper sagaTxRecordResultMapper;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Throwable.class)
     public long firstTrigger(SagaRecord record, List<SagaRecordParam> recordParamList) {
 
         Date now = new Date();
@@ -56,7 +60,7 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Throwable.class)
     public boolean trigger(Long recordId, String triggerId, Date nextTriggerTime, Date lockExpireTime) {
 
         boolean locked;
@@ -112,13 +116,39 @@ public class RdbmsManager implements Manager {
         sagaRecordMapper.updateStatus(recordId, status, new Date());
     }
 
+
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Throwable.class)
+    public void saveRecordStatusAndResult(long recordId, SagaStatus status, SagaRecordResult recordResult) {
+        Date now = new Date();
+        recordResult.setCreateTime(now);
+        recordResult.setModifyTime(now);
+
+        recordResultMapper.insert(recordResult);
+
+        sagaRecordMapper.updateStatus(recordId, status, new Date());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Throwable.class)
     public long saveTxRecordAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> paramList) {
 
+        Date now = new Date();
+        txRecord.setCreateTime(now);
+        txRecord.setModifyTime(now);
         sagaTxRecordMapper.insert(txRecord);
 
-        sagaTxRecordParamMapper.insertList(paramList);
+        Long id = txRecord.getId();
+
+        if (CollectionUtils.isNotEmpty(paramList)) {
+            for (SagaTxRecordParam param : paramList) {
+                param.setTxRecordId(id);
+                param.setCreateTime(now);
+                param.setModifyTime(now);
+            }
+
+            sagaTxRecordParamMapper.insertList(paramList);
+        }
 
         return txRecord.getId();
 
@@ -144,6 +174,7 @@ public class RdbmsManager implements Manager {
         SagaTxRecord txRecord = new SagaTxRecord();
         txRecord.setId(txRecordId);
         txRecord.setStatus(status);
+        txRecord.setModifyTime(new Date());
         sagaTxRecordMapper.updateById(txRecord);
     }
 
@@ -153,6 +184,9 @@ public class RdbmsManager implements Manager {
         Long txRecordId = recordResult.getTxRecordId();
         saveTxRecordStatus(txRecordId, SagaTxStatus.SUCCESS);
 
+        Date now = new Date();
+        recordResult.setCreateTime(now);
+        recordResult.setModifyTime(now);
         sagaTxRecordResultMapper.insert(recordResult);
 
     }

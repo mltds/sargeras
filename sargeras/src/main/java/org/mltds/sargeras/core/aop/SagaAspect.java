@@ -6,31 +6,44 @@ import java.util.List;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
-import org.mltds.sargeras.api.*;
+import org.mltds.sargeras.api.Saga;
+import org.mltds.sargeras.api.SagaBuilder;
+import org.mltds.sargeras.api.SagaStatus;
 import org.mltds.sargeras.api.exception.SagaException;
 import org.mltds.sargeras.api.exception.expectation.Failure;
-import org.mltds.sargeras.api.listener.SagaListener;
 import org.mltds.sargeras.api.model.MethodInfo;
 import org.mltds.sargeras.api.model.ParamInfo;
+import org.mltds.sargeras.api.model.SagaRecordResult;
 import org.mltds.sargeras.core.SagaApplication;
 import org.mltds.sargeras.core.SagaContext;
 import org.mltds.sargeras.core.SagaContextFactory;
+import org.mltds.sargeras.spi.serializer.Serializer;
+import org.mltds.sargeras.utils.NULL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
 
 /**
  * @author sunyi.
  */
 @Aspect
+@Component
 public class SagaAspect implements ApplicationContextAware {
+
+    private static final Logger logger = LoggerFactory.getLogger(SagaAspect.class);
 
     @Autowired
     private SagaAopHolder aopHolder;
 
     @Autowired
     private SagaAopComponent aopComponent;
+
+    @Autowired
+    private Serializer serializer;
 
     @Autowired
     private SagaApplication sagaApplication;
@@ -44,8 +57,7 @@ public class SagaAspect implements ApplicationContextAware {
     public void sagaAspect() {
     }
 
-    @Before("sagaAspect()")
-    public void before(JoinPoint joinPoint) {
+    private void before(JoinPoint joinPoint) {
 
         org.mltds.sargeras.api.annotation.Saga sagaAnnotation = aopComponent.getSaga(joinPoint);
 
@@ -59,7 +71,7 @@ public class SagaAspect implements ApplicationContextAware {
             MethodInfo methodInfo = aopComponent.getMethodInfo(joinPoint);
             List<ParamInfo> paramInfoList = aopComponent.getParamInfoList(methodInfo);
             Saga saga = getSaga(joinPoint);
-            context = SagaContext.newContext(saga);
+            context = sagaContextFactory.newContext(saga);
             context.firstTrigger(bizId, methodInfo, paramInfoList);
         } else {
             context.trigger();
@@ -72,6 +84,9 @@ public class SagaAspect implements ApplicationContextAware {
 
     @Around("sagaAspect()")
     public Object around(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+
+        before(proceedingJoinPoint);
+
         SagaContext context = aopHolder.getContext();
 
         SagaStatus status = context.getStatus();
@@ -94,41 +109,64 @@ public class SagaAspect implements ApplicationContextAware {
 
     }
 
-    @AfterReturning("sagaAspect()")
-    public void afterReturning(JoinPoint joinPoint) {
-        // 记录 SagaRecord 为成功
-        SagaContext context = aopHolder.getContext();
-        SagaStatus status = context.getStatus();
-        if (status.equals(SagaStatus.EXECUTING)) {
-            context.saveStatus(SagaStatus.EXECUTE_SUCC);
-        } else if (status.equals(SagaStatus.COMPENSATING)) {
-            context.saveStatus(SagaStatus.COMPENSATE_SUCC);
+    @AfterReturning(pointcut = "sagaAspect()", returning = "returning")
+    public void afterReturning(JoinPoint joinPoint, Object returning) {
+        try {
+            // 记录 SagaRecord 为成功
+            SagaContext context = aopHolder.getContext();
+            SagaStatus status = context.getStatus();
+            if (status.equals(SagaStatus.EXECUTING)) {
+
+                SagaRecordResult sagaRecordResult = new SagaRecordResult();
+                sagaRecordResult.setRecordId(context.getRecordId());
+                if (returning == null) {
+                    sagaRecordResult.setCls(NULL.class.getName());
+                } else {
+                    sagaRecordResult.setCls(returning.getClass().getName());
+                    sagaRecordResult.setResult(serializer.encode(returning));
+                }
+
+                context.saveStatusAndResult(SagaStatus.EXECUTE_SUCC, sagaRecordResult);
+
+            } else if (status.equals(SagaStatus.COMPENSATING)) {
+                context.saveStatus(SagaStatus.COMPENSATE_SUCC);
+            }
+            context.triggerOver();
+        } catch (Exception e) {
+            logger.error("afterReturning", e); // TODO 优化异常信息
+        } finally {
+            aopHolder.removeContext();
         }
-        context.triggerOver();
-        aopHolder.removeContext();
+
     }
 
     @AfterThrowing(pointcut = "sagaAspect()", throwing = "throwable")
-    public void afterThrowing(JoinPoint joinPoint, Throwable throwable) {
+    public void afterThrowing(JoinPoint joinPoint, Throwable throwable) throws Throwable {
+        try {
+            SagaContext context = aopHolder.getContext();
+            SagaStatus status = context.getStatus();
 
-        SagaContext context = aopHolder.getContext();
-        SagaStatus status = context.getStatus();
+            if (throwable instanceof Failure) {
+                if (status.equals(SagaStatus.EXECUTING)) {
+                    aopComponent.compensate();
+                } else if (status.equals(SagaStatus.COMPENSATING)) {
+                    context.saveStatus(SagaStatus.COMPENSATE_FAIL);
+                }
 
-        if (throwable instanceof Failure) {
-            if (status.equals(SagaStatus.EXECUTING)) {
-                aopComponent.compensate();
-            } else if (status.equals(SagaStatus.COMPENSATING)) {
-                context.saveStatus(SagaStatus.COMPENSATE_FAIL);
+            } else {
+                Date nextTriggerTime = context.getNextTriggerTime();
+                if (nextTriggerTime.after(context.getExpireTime())) {
+                    context.saveStatus(SagaStatus.OVERTIME);
+                }
             }
-
-        } else {
-            Date nextTriggerTime = context.getNextTriggerTime();
-            if (nextTriggerTime.after(context.getExpireTime())) {
-                context.saveStatus(SagaStatus.OVERTIME);
-            }
+            context.triggerOver();
+        } catch (Exception e) {
+            logger.error("afterThrowing", e); // TODO 优化异常信息
+        } finally {
+            aopHolder.removeContext();
+            throw throwable;
         }
-        context.triggerOver();
-        aopHolder.removeContext();
+
     }
 
     private Saga getSaga(JoinPoint joinPoint) {
@@ -157,7 +195,7 @@ public class SagaAspect implements ApplicationContextAware {
         int bizTimeout = anno.bizTimeout();
         int lockTimeout = anno.lockTimeout();
         String triggerInterval = anno.triggerInterval();
-        Class<? extends SagaListener>[] listeners = anno.listeners();
+        // Class<? extends SagaListener>[] listeners = anno.listeners();
 
         SagaBuilder builder = SagaBuilder.newBuilder();
         builder.setAppName(appName)//
@@ -171,14 +209,14 @@ public class SagaAspect implements ApplicationContextAware {
                 .setTriggerInterval(triggerInterval)//
         ;
 
-        for (Class<? extends SagaListener> listener : listeners) {
-            SagaListener l = applicationContext.getBean(listener);
-            if (l == null) {
-                throw new SagaException(methodInfo.getCls().getSimpleName() + "#" + methodInfo.getMethodName() + " 配置Listener: " + listener.getSimpleName()
-                        + " 失败, Listener 需要为 Spring Bean");
-            }
-            builder.addListener(l);
-        }
+        // for (Class<? extends SagaListener> listener : listeners) {
+        // SagaListener l = applicationContext.getBean(listener);
+        // if (l == null) {
+        // throw new SagaException(methodInfo.getCls().getSimpleName() + "#" + methodInfo.getMethodName() + " 配置Listener: " + listener.getSimpleName()
+        // + " 失败, Listener 需要为 Spring Bean");
+        // }
+        // builder.addListener(l);
+        // }
 
         Saga saga = builder.build();
         sagaApplication.addSaga(saga);

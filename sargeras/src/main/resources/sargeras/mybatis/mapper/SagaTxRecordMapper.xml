@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="org.mltds.sargeras.spi.manager.rdbms.mapper.SagaTxRecordParamMapper">
+<mapper namespace="org.mltds.sargeras.spi.manager.rdbms.mapper.SagaTxRecordMapper">
 
     <resultMap id="SagaTxRecordRM" type="SagaTxRecord">
         <id property="id" column="id"/>
@@ -11,7 +11,6 @@
         <result property="method" column="method"/>
         <result property="compensateMethod" column="compensate_method"/>
         <result property="parameterTypes" column="parameter_types"/>
-        <result property="parameterNames" column="parameter_names"/>
         <result property="status" column="status"/>
         <result property="createTime" column="create_time"/>
         <result property="modifyTime" column="modify_time"/>
@@ -23,9 +22,9 @@
         </selectKey>
         INSERT INTO
         saga_tx_record
-        (record_id, cls, method, compensate_method, parameter_types, parameter_names, status, create_time,modify_time)
+        (record_id, cls, method, compensate_method, parameter_types,  status, create_time,modify_time)
         VALUES
-        (#{recordId},#{cls},#{method},#{compensateMethod},#{parameterTypes},#{parameterNames},#{status},#{createTime},#{modifyTime})
+        (#{recordId},#{cls},#{method},#{compensateMethod},#{parameterTypes},#{status},#{createTime},#{modifyTime})
     </insert>
 
     <update id="updateById" parameterType="SagaTxRecord">

@@ -20,7 +20,7 @@ public @interface Saga {
 
     String bizName();
 
-    Class<? extends SagaListener>[] listeners();
+//    Class<? extends SagaListener>[] listeners();
 
     int lockTimeout() default DEFAULT_BIZ_TIMEOUT;
 

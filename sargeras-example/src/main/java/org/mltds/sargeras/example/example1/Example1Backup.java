@@ -6,7 +6,7 @@
 //import org.mltds.sargeras.api.listener.LogListener;
 //import org.mltds.sargeras.example.example1.txs.BookAir;
 //import org.mltds.sargeras.example.example1.txs.BookCar;
-//import org.mltds.sargeras.example.example1.txs.BookHotel;
+//import org.mltds.sargeras.example.example1.txs.HotelService;
 //import org.mltds.sargeras.example.example1.txs.Summary;
 //import org.slf4j.Logger;
 //import org.slf4j.LoggerFactory;
@@ -16,7 +16,7 @@
 ///**
 // * 一个正向执行/逆向补偿的例子<br/>
 // * 比如家人要去旅游，帮家里人订票的例子，有四个TX：订汽车 -> 订机票 -> 订酒店 -> 汇总结果。<br/>
-// * PS：可以通过修改 {@link BookHotel} 的构造方法入参，来控制流程的成功失败。
+// * PS：可以通过修改 {@link HotelService} 的构造方法入参，来控制流程的成功失败。
 // *
 // * @author sunyi
 // */
@@ -41,7 +41,7 @@
 //        SagaBuilder.newBuilder(appName, bizName)// 定义一个业务
 //                .addTx(new BookCar())// 订汽车
 //                .addTx(new BookAir())// 订机票
-//                .addTx(new BookHotel(true))// 订酒店，false为强制失败
+//                .addTx(new HotelService(true))// 订酒店，false为强制失败
 //                .addTx(new Summary()) // 汇总结果
 //                .addListener(new LogListener()) // 增加一些log输出方便跟踪
 //                .build();

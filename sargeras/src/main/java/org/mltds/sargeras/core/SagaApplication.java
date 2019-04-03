@@ -33,11 +33,7 @@ public class SagaApplication {
     }
 
     public Saga getSaga(String keyName) {
-        Saga saga = sagas.get(keyName);
-        if (saga == null) {
-            throw new SagaNotFoundException(keyName);
-        }
-        return saga;
+        return sagas.get(keyName);
     }
 
     public Saga getSaga(String appName, String bizName) {

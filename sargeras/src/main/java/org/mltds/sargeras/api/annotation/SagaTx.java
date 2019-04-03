@@ -1,6 +1,7 @@
 package org.mltds.sargeras.api.annotation;
 
 import java.lang.annotation.*;
+import java.lang.reflect.Method;
 
 /**
  *

@@ -7,7 +7,6 @@ import java.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.mltds.sargeras.core.SagaContext;
 import org.mltds.sargeras.api.SagaStatus;
 import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.annotation.SagaBizId;
@@ -18,6 +17,7 @@ import org.mltds.sargeras.api.model.MethodInfo;
 import org.mltds.sargeras.api.model.ParamInfo;
 import org.mltds.sargeras.api.model.SagaTxRecord;
 import org.mltds.sargeras.api.model.SagaTxRecordParam;
+import org.mltds.sargeras.core.SagaContext;
 import org.mltds.sargeras.spi.serializer.Serializer;
 import org.mltds.sargeras.utils.Utils;
 import org.springframework.beans.BeansException;
@@ -26,6 +26,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 
 /**
@@ -91,7 +92,10 @@ public class SagaAopComponent implements ApplicationContextAware {
 
         Class<?> cls = executeMethodInfo.getCls();
 
-        Method compensateMethod = ReflectionUtils.findMethod(cls, compensateMethodName);
+        Method compensateMethod = findCompensateMethod(cls, compensateMethodName);
+        if (compensateMethod == null) {
+            throw new SagaException("没有找到 Saga Tx " + executeMethod.toString() + " 的 Compensate Method： " + compensateMethodName);
+        }
 
         MethodInfo compensateMethodInfo = new MethodInfo();
 
@@ -142,7 +146,7 @@ public class SagaAopComponent implements ApplicationContextAware {
                 paramInfo.setParameterType(parameterType);
                 paramInfo.setParameterTypeStr(parameterType.getName());
                 paramInfo.setParameter(methodInfo.getParameters()[i]);
-                paramInfo.setParameterByte(serializer.serialize(paramInfo.getParameter()));
+                paramInfo.setParameterByte(serializer.encode(paramInfo.getParameter()));
 
                 paramInfoList.add(paramInfo);
             }
@@ -251,7 +255,7 @@ public class SagaAopComponent implements ApplicationContextAware {
             String parameterType = param.getParameterType();
 
             if (name.equals(parameterName) && type.getName().equals(parameterType)) {
-                Object obj = serializer.deserialize(param.getParameter(), type);
+                Object obj = serializer.decode(param.getParameter(), type);
                 args[i] = obj;
             }
         }
@@ -260,6 +264,22 @@ public class SagaAopComponent implements ApplicationContextAware {
 
         return method.invoke(bean, args);
 
+    }
+
+    private Method findCompensateMethod(Class<?> clazz, String compensateMethodName) {
+        Assert.notNull(clazz, "Class must not be null");
+        Assert.notNull(compensateMethodName, "Method name must not be null");
+        Class<?> searchType = clazz;
+        while (searchType != null) {
+            Method[] methods = searchType.getMethods();
+            for (Method method : methods) {
+                if (compensateMethodName.equals(method.getName())) {
+                    return method;
+                }
+            }
+            searchType = searchType.getSuperclass();
+        }
+        return null;
     }
 
 }

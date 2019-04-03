@@ -127,7 +127,7 @@ public class SagaTxAspect {
         return context.saveCurrentTxAndParam(txRecord, txRecordParamList);
     }
 
-    public Object doExecute(ProceedingJoinPoint proceedingJoinPoint, SagaTxRecord txRecord) throws Throwable {
+    private Object doExecute(ProceedingJoinPoint proceedingJoinPoint, SagaTxRecord txRecord) throws Throwable {
 
         SagaContext context = aopHolder.getContext();
 
@@ -149,7 +149,7 @@ public class SagaTxAspect {
         }
     }
 
-    public SagaTxRecord getPreviousTxRecord(ProceedingJoinPoint proceedingJoinPoint) {
+    private SagaTxRecord getPreviousTxRecord(ProceedingJoinPoint proceedingJoinPoint) {
 
         SagaContext context = aopHolder.getContext();
 
@@ -173,7 +173,7 @@ public class SagaTxAspect {
 
     }
 
-    public void saveTxRecordResult(Long sagaRecordId, Long sagaTxRecord, Object result) {
+    private void saveTxRecordResult(Long sagaRecordId, Long sagaTxRecord, Object result) {
 
         SagaContext context = aopHolder.getContext();
 
@@ -184,14 +184,14 @@ public class SagaTxAspect {
             recordResult.setCls(NULL.class.getName());
         } else {
             recordResult.setCls(result.getClass().getName());
-            recordResult.setResult(serializer.serialize(result));
+            recordResult.setResult(serializer.encode(result));
         }
 
         context.saveTxRecordSuccAndResult(recordResult);
 
     }
 
-    public Object getTxRecordResult(Long sagaTxRecord) {
+    private Object getTxRecordResult(Long sagaTxRecord) {
 
         SagaContext context = aopHolder.getContext();
 
@@ -200,7 +200,7 @@ public class SagaTxAspect {
         if (NULL.class.equals(resultCls)) {
             return null;
         } else {
-            return serializer.deserialize(txRecordResult.getResult(), resultCls);
+            return serializer.decode(txRecordResult.getResult(), resultCls);
         }
     }
 
