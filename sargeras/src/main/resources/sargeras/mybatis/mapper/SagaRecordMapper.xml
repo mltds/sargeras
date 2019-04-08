@@ -47,9 +47,13 @@
     <update id="updateForLock">
         UPDATE saga_record SET
         locked = 1,
-        trigger_id = #{triggerId},
+        trigger_id = #{newTriggerId},
+        trigger_count = trigger_count + 1,
         lock_expire_time = #{lockExpireTime}
-        WHERE id = #{id} AND trigger_id = #{oldTriggerId}
+        WHERE id = #{id}
+        <if test="oldTriggerId != null">
+            AND trigger_id = #{oldTriggerId}
+        </if>
     </update>
 
     <update id="updateForUnlock">

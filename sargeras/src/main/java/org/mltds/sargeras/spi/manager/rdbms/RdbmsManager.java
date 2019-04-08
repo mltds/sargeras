@@ -165,7 +165,7 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    public SagaTxRecordResult getTxRecordResult(Long txRecordId) {
+    public SagaTxRecordResult findTxRecordResult(Long txRecordId) {
         return sagaTxRecordResultMapper.selectByTxRecordId(txRecordId);
     }
 
@@ -192,7 +192,7 @@ public class RdbmsManager implements Manager {
     }
 
     @Override
-    public List<SagaTxRecordParam> getTxRecordParam(Long txRecordId) {
+    public List<SagaTxRecordParam> findTxRecordParam(Long txRecordId) {
         return sagaTxRecordParamMapper.selectByTxRecordId(txRecordId);
     }
 

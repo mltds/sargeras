@@ -1,14 +1,10 @@
 package org.mltds.sargeras.api;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.mltds.sargeras.api.exception.SagaException;
-import org.mltds.sargeras.api.listener.SagaListener;
 
 /**
  * Saga 代表着一个长事务（LLT,long live transaction），由多个小事务（Tx）有序组成。<br/>
@@ -37,16 +33,14 @@ public class Saga {
     private String appName;
     private String bizName;
 
-    private Class<?> cls;
-    private Object bean;
+    private Class<?> beanClass;
+    private String beanName;
     private Method method;
     private Class[] parameterTypes;
 
     private int lockTimeout;
     private int bizTimeout;
     private int[] triggerInterval;
-
-    private List<SagaListener> listenerList = new ArrayList<>();
 
     Saga() {
 
@@ -97,20 +91,20 @@ public class Saga {
         this.bizName = bizName;
     }
 
-    public Class<?> getCls() {
-        return cls;
+    public Class<?> getBeanClass() {
+        return beanClass;
     }
 
-    public void setCls(Class<?> cls) {
-        this.cls = cls;
+    public void setBeanClass(Class<?> beanClass) {
+        this.beanClass = beanClass;
     }
 
-    public Object getBean() {
-        return bean;
+    public String getBeanName() {
+        return beanName;
     }
 
-    public void setBean(Object bean) {
-        this.bean = bean;
+    public void setBeanName(String beanName) {
+        this.beanName = beanName;
     }
 
     public Method getMethod() {
@@ -149,20 +143,12 @@ public class Saga {
         return triggerInterval;
     }
 
-    void setTriggerInterval(String triggerInterval) {
-        setTriggerInterval(conversionTriggerInterval(triggerInterval));
-    }
-
     void setTriggerInterval(int[] triggerInterval) {
         this.triggerInterval = triggerInterval;
     }
 
-    public List<SagaListener> getListenerList() {
-        return Collections.unmodifiableList(listenerList);
-    }
-
-    public void addListener(SagaListener listenerList) {
-        this.listenerList.add(listenerList);
+    void setTriggerInterval(String triggerInterval) {
+        setTriggerInterval(conversionTriggerInterval(triggerInterval));
     }
 
     public String getKeyName() {
@@ -174,7 +160,8 @@ public class Saga {
         return "Saga{" +
                 "appName='" + appName + '\'' +
                 ", bizName='" + bizName + '\'' +
-                ", cls=" + cls +
+                ", beanClass=" + beanClass +
+                ", beanName='" + beanName + '\'' +
                 ", method=" + method +
                 ", parameterTypes=" + Arrays.toString(parameterTypes) +
                 '}';
@@ -187,29 +174,24 @@ public class Saga {
 
         Saga saga = (Saga) o;
 
-        if (getLockTimeout() != saga.getLockTimeout()) return false;
-        if (getBizTimeout() != saga.getBizTimeout()) return false;
         if (getAppName() != null ? !getAppName().equals(saga.getAppName()) : saga.getAppName() != null) return false;
         if (getBizName() != null ? !getBizName().equals(saga.getBizName()) : saga.getBizName() != null) return false;
-        if (getCls() != null ? !getCls().equals(saga.getCls()) : saga.getCls() != null) return false;
+        if (getBeanClass() != null ? !getBeanClass().equals(saga.getBeanClass()) : saga.getBeanClass() != null) return false;
+        if (getBeanName() != null ? !getBeanName().equals(saga.getBeanName()) : saga.getBeanName() != null)
+            return false;
         if (getMethod() != null ? !getMethod().equals(saga.getMethod()) : saga.getMethod() != null) return false;
         // Probably incorrect - comparing Object[] arrays with Arrays.equals
-        if (!Arrays.equals(getParameterTypes(), saga.getParameterTypes())) return false;
-        if (!Arrays.equals(getTriggerInterval(), saga.getTriggerInterval())) return false;
-        return getListenerList() != null ? getListenerList().equals(saga.getListenerList()) : saga.getListenerList() == null;
+        return Arrays.equals(getParameterTypes(), saga.getParameterTypes());
     }
 
     @Override
     public int hashCode() {
         int result = getAppName() != null ? getAppName().hashCode() : 0;
         result = 31 * result + (getBizName() != null ? getBizName().hashCode() : 0);
-        result = 31 * result + (getCls() != null ? getCls().hashCode() : 0);
+        result = 31 * result + (getBeanClass() != null ? getBeanClass().hashCode() : 0);
+        result = 31 * result + (getBeanName() != null ? getBeanName().hashCode() : 0);
         result = 31 * result + (getMethod() != null ? getMethod().hashCode() : 0);
         result = 31 * result + Arrays.hashCode(getParameterTypes());
-        result = 31 * result + getLockTimeout();
-        result = 31 * result + getBizTimeout();
-        result = 31 * result + Arrays.hashCode(getTriggerInterval());
-        result = 31 * result + (getListenerList() != null ? getListenerList().hashCode() : 0);
         return result;
     }
 }

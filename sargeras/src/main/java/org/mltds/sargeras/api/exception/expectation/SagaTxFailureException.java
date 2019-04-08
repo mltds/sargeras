@@ -1,11 +1,12 @@
 package org.mltds.sargeras.api.exception.expectation;
 
+import org.mltds.sargeras.api.SagaTxFailure;
 import org.mltds.sargeras.api.exception.SagaException;
 
 /**
  * @author sunyi.
  */
-public class SagaTxFailureException extends SagaException implements Failure {
+public class SagaTxFailureException extends SagaException implements SagaTxFailure {
 
     public SagaTxFailureException() {
     }

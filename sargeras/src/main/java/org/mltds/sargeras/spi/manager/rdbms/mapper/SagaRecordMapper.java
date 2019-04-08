@@ -19,7 +19,7 @@ public interface SagaRecordMapper {
     int updateForLock(@Param("id") long id, @Param("oldTriggerId") String oldTriggerId, @Param("newTriggerId") String newTriggerId,
             @Param("lockExpireTime") Date lockExpireTime);
 
-    int updateForUnlock(@Param("id") long id, @Param("oldTriggerId") String triggerId);
+    int updateForUnlock(@Param("id") long id, @Param("oldTriggerId") String oldTriggerId);
 
     int updateNextTriggerTimeAndIncrementCount(@Param("id") long id, @Param("nextTriggerTime") Date nextTriggerTime, @Param("modifyTime") Date modifyTime);
 

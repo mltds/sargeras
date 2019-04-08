@@ -7,19 +7,15 @@ import java.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.mltds.sargeras.api.SagaStatus;
-import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.annotation.SagaBizId;
 import org.mltds.sargeras.api.annotation.SagaTx;
 import org.mltds.sargeras.api.exception.SagaException;
-import org.mltds.sargeras.api.exception.expectation.Failure;
 import org.mltds.sargeras.api.model.MethodInfo;
 import org.mltds.sargeras.api.model.ParamInfo;
-import org.mltds.sargeras.api.model.SagaTxRecord;
-import org.mltds.sargeras.api.model.SagaTxRecordParam;
-import org.mltds.sargeras.core.SagaContext;
 import org.mltds.sargeras.spi.serializer.Serializer;
 import org.mltds.sargeras.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -27,13 +23,14 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
-import org.springframework.util.ReflectionUtils;
 
 /**
  * @author sunyi.
  */
 @Component
 public class SagaAopComponent implements ApplicationContextAware {
+
+    private static final Logger logger = LoggerFactory.getLogger(SagaAopComponent.class);
 
     private ApplicationContext applicationContext;
 
@@ -81,6 +78,30 @@ public class SagaAopComponent implements ApplicationContextAware {
 
     }
 
+    public MethodInfo getMethodInfo(Method method) {
+        MethodInfo methodInfo = new MethodInfo();
+
+        Class<?> cls = method.getDeclaringClass();
+        methodInfo.setCls(cls);
+        methodInfo.setClsName(cls.getName());
+
+        methodInfo.setMethod(method);
+        methodInfo.setMethodName(method.getName());
+
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        methodInfo.setParameterTypes(parameterTypes);
+        methodInfo.setParameterTypesStr(Utils.parameterTypesToString(parameterTypes));
+
+        String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);
+        methodInfo.setParameterNames(parameterNames);
+        methodInfo.setParameterNamesStr(Utils.arrayToString(parameterNames));
+
+
+        return methodInfo;
+
+
+    }
+
     public MethodInfo getCompensateMethodInfo(MethodInfo executeMethodInfo) {
         Method executeMethod = executeMethodInfo.getMethod();
         SagaTx sagaTx = executeMethod.getAnnotation(SagaTx.class);
@@ -92,9 +113,15 @@ public class SagaAopComponent implements ApplicationContextAware {
 
         Class<?> cls = executeMethodInfo.getCls();
 
-        Method compensateMethod = findCompensateMethod(cls, compensateMethodName);
+        return getCompensateMethodInfo(cls, compensateMethodName);
+    }
+
+
+    public MethodInfo getCompensateMethodInfo(Class<?> cls, String compensateMethodName) {
+
+        Method compensateMethod = getCompensateMethod(cls, compensateMethodName);
         if (compensateMethod == null) {
-            throw new SagaException("没有找到 Saga Tx " + executeMethod.toString() + " 的 Compensate Method： " + compensateMethodName);
+            throw new SagaException("没有找到 Saga Tx 的 Compensate 方法： " + compensateMethodName);
         }
 
         MethodInfo compensateMethodInfo = new MethodInfo();
@@ -184,89 +211,9 @@ public class SagaAopComponent implements ApplicationContextAware {
 
     }
 
-    public void compensate() {
 
-        SagaContext context = aopHolder.getContext();
 
-        SagaStatus status = context.getStatus();
-        if (status.equals(SagaStatus.EXECUTING)) {
-            context.saveStatus(SagaStatus.COMPENSATING);
-        }
-
-        List<SagaTxRecord> txRecordList = context.getTxRecordList();
-        for (int i = txRecordList.size() - 1; i >= 0; i--) {
-            SagaTxRecord txRecord = txRecordList.get(i);
-            SagaTxStatus txStatus = txRecord.getStatus();
-
-            if (txStatus.equals(SagaTxStatus.SUCCESS) || txStatus.equals(SagaTxStatus.FAILURE) || txStatus.equals(SagaTxStatus.COMPENSATE_PROCESSING)) {
-                try {
-                    doCompensate(txRecord);
-                    context.saveTxStatus(txRecord.getId(), SagaTxStatus.COMPENSATE_SUCCESS);
-                } catch (Exception e) {
-                    if (e instanceof Failure) {
-                        context.saveTxStatus(txRecord.getId(), SagaTxStatus.COMPENSATE_FAILURE);
-                        context.saveStatus(SagaStatus.COMPENSATE_FAIL);
-                    } else {
-                        context.saveTxStatus(txRecord.getId(), SagaTxStatus.COMPENSATE_PROCESSING);
-                    }
-                }
-            } else if (txStatus.equals(SagaTxStatus.COMPENSATE_FAILURE)) {
-                context.saveStatus(SagaStatus.COMPENSATE_FAIL);
-            } else if (txStatus.equals(SagaTxStatus.COMPENSATE_SUCCESS)) {
-                // 补偿过了，不再补偿
-            } else {
-                throw new SagaException("补偿过程中发现不合理的状态,SagaTxRecordId: " + txRecord.getId() + ", SagaTxStatus: " + txStatus);
-            }
-        }
-
-    }
-
-    public Object doCompensate(SagaTxRecord txRecord) throws Exception {
-
-        SagaContext context = aopHolder.getContext();
-
-        Long id = txRecord.getId();
-        SagaTxStatus txStatus = txRecord.getStatus();
-
-        if (!txStatus.equals(SagaTxStatus.SUCCESS) && !txStatus.equals(SagaTxStatus.FAILURE) && !txStatus.equals(SagaTxStatus.COMPENSATE_PROCESSING)) {
-            throw new SagaException("状态不正确无法补偿,SagaTxRecordId: " + txRecord.getId() + ", SagaTxStatus: " + txStatus);
-        }
-
-        Class<?> cls = Utils.loadClass(txRecord.getCls());
-        String compensateMethod = txRecord.getCompensateMethod();
-
-        Method method = ReflectionUtils.findMethod(cls, compensateMethod);
-        Class<?>[] parameterTypes = method.getParameterTypes();
-        String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);
-
-        List<SagaTxRecordParam> paramList = context.getTxRecordParam(txRecord.getId());
-        Map<String, SagaTxRecordParam> map = new HashMap<>(paramList.size());
-        for (SagaTxRecordParam param : paramList) {
-            map.put(param.getParameterName(), param);
-        }
-
-        Object args[] = new Object[parameterNames.length];
-        for (int i = 0; i < args.length; i++) {
-            String name = parameterNames[i];
-            Class<?> type = parameterTypes[i];
-
-            SagaTxRecordParam param = map.get(name);
-            String parameterName = param.getParameterName();
-            String parameterType = param.getParameterType();
-
-            if (name.equals(parameterName) && type.getName().equals(parameterType)) {
-                Object obj = serializer.decode(param.getParameter(), type);
-                args[i] = obj;
-            }
-        }
-
-        Object bean = applicationContext.getBean(cls);
-
-        return method.invoke(bean, args);
-
-    }
-
-    private Method findCompensateMethod(Class<?> clazz, String compensateMethodName) {
+    public Method getCompensateMethod(Class<?> clazz, String compensateMethodName) {
         Assert.notNull(clazz, "Class must not be null");
         Assert.notNull(compensateMethodName, "Method name must not be null");
         Class<?> searchType = clazz;
@@ -274,6 +221,7 @@ public class SagaAopComponent implements ApplicationContextAware {
             Method[] methods = searchType.getMethods();
             for (Method method : methods) {
                 if (compensateMethodName.equals(method.getName())) {
+                    // 只选择第一个，因为在注解上比较难表明 Compensate 方法的参数有哪些，所以只靠名称来获取 Compensate 方法
                     return method;
                 }
             }

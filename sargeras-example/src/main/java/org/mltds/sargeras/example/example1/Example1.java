@@ -1,5 +1,6 @@
 package org.mltds.sargeras.example.example1;
 
+import java.io.IOException;
 import java.util.UUID;
 
 import org.junit.Test;
@@ -26,22 +27,33 @@ public class Example1 {
     private TravelService travelService;
 
     @Test
-    public void test() {
+    public void test() throws IOException, InterruptedException {
+        for (int i = 0; i < 1; i++) {
+            service();
+        }
 
-        // 业务订单ID，唯一且必须先生成。
-        String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+        Thread.sleep(1000 * 60 * 60);
 
-        // 家人信息
-        FamilyMember member = new FamilyMember();
-        member.id = "123456789012345678";
-        member.name = "小乌龟";
-        member.tel = "13100000000";
-        member.travelDestination = "Croatia Plitvice Lakes National Park";
+    }
 
-        BookResult bookResult = travelService.travel(bizId, member);
+    public void service() {
+        try {
+            // 业务订单ID，唯一且必须先生成。
+            String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
 
-        logger.info(JSON.toJSONString(bookResult, true));
+            // 家人信息
+            FamilyMember member = new FamilyMember();
+            member.id = "123456789012345678";
+            member.name = "小乌龟";
+            member.tel = "13100000000";
+            member.travelDestination = "Croatia Plitvice Lakes National Park";
 
+            BookResult bookResult = travelService.travel(bizId, member);
+
+            logger.info(JSON.toJSONString(bookResult, true));
+        } catch (Exception e) {
+            logger.error("旅行计划发生异常", e);
+        }
     }
 
 }

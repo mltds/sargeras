@@ -12,13 +12,8 @@
 
     <aop:aspectj-autoproxy/>
 
-
-    <bean id="sagaApplication" class="org.mltds.sargeras.core.SagaApplication"/>
-
-
     <import resource="saga-serializer-hessian.xml"/>
     <import resource="saga-manager-rdbms.xml"/>
     <import resource="saga-pollretry-scheduled.xml"/>
-
 
 </beans>

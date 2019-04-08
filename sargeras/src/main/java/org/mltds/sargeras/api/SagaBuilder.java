@@ -2,8 +2,6 @@ package org.mltds.sargeras.api;
 
 import java.lang.reflect.Method;
 
-import org.mltds.sargeras.api.listener.SagaListener;
-
 /**
  * 用于构建一个 Saga
  *
@@ -32,13 +30,13 @@ public class SagaBuilder {
         return this;
     }
 
-    public SagaBuilder setBean(Object bean) {
-        saga.setBean(bean);
+    public SagaBuilder setBeanName(String beanName) {
+        saga.setBeanName(beanName);
         return this;
     }
 
-    public SagaBuilder setCls(Class<?> cls) {
-        saga.setCls(cls);
+    public SagaBuilder setBeanClass(Class<?> beanClass) {
+        saga.setBeanClass(beanClass);
         return this;
     }
 
@@ -75,11 +73,6 @@ public class SagaBuilder {
      */
     public SagaBuilder setTriggerInterval(String triggerInterval) {
         saga.setTriggerInterval(triggerInterval);
-        return this;
-    }
-
-    public SagaBuilder addListener(SagaListener listener) {
-        saga.addListener(listener);
         return this;
     }
 

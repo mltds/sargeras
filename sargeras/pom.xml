@@ -15,9 +15,24 @@
 
     <dependencies>
 
+        <!--spring-->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aop</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -27,21 +42,19 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
+            <scope>test</scope>
         </dependency>
+        <!--spring end-->
+
+        <!--test-->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
-        </dependency>
-
 
         <!--logger-->
         <dependency>
@@ -53,10 +66,14 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
 
+        <!-- info serialize by json -->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
         </dependency>
+
+
+        <!--MyBatis3.5 及以上只支持 JDK8 了-->
         <dependency>
             <groupId>org.mybatis</groupId>
             <artifactId>mybatis</artifactId>
@@ -70,7 +87,7 @@
             <artifactId>mysql-connector-java</artifactId>
         </dependency>
 
-
+        <!-- commons -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
@@ -85,10 +102,13 @@
         </dependency>
 
         <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>reflectasm</artifactId>
         </dependency>
-
 
         <dependency>
             <groupId>com.alibaba</groupId>
@@ -98,4 +118,5 @@
 
     </dependencies>
 
-</project>
+
+        </project>

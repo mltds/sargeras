@@ -1,11 +1,12 @@
 package org.mltds.sargeras.api.exception.expectation;
 
+import org.mltds.sargeras.api.SagaTxProcessing;
 import org.mltds.sargeras.api.exception.SagaException;
 
 /**
  * @author sunyi.
  */
-public class SagaTxProcessingException extends SagaException implements Processing {
+public class SagaTxProcessingException extends SagaException implements SagaTxProcessing {
 
     public SagaTxProcessingException() {
     }

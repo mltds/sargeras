@@ -19,12 +19,6 @@ public interface Manager {
 
     /**
      * 尝试获取锁，获取锁成功触发次数+1，设施锁过期时间和下一次触发时间。如果获取锁失败则放弃。
-     * 
-     * @param recordId
-     * @param triggerId
-     * @param nextTriggerTime
-     * @param lockExpireTime
-     * @return
      */
     boolean trigger(Long recordId, String triggerId, Date nextTriggerTime, Date lockExpireTime);
 
@@ -42,9 +36,6 @@ public interface Manager {
 
     /**
      * 保存当前要执行/执行中的TX
-     *
-     * @param txRecord
-     * @param paramList
      */
     long saveTxRecordAndParam(SagaTxRecord txRecord, List<SagaTxRecordParam> paramList);
 
@@ -56,7 +47,7 @@ public interface Manager {
     /**
      * 保存状态并更新ModifyTime
      */
-    void saveRecordStatusAndResult(long recordId, SagaStatus status,SagaRecordResult recordResult);
+    void saveRecordStatusAndResult(long recordId, SagaStatus status, SagaRecordResult recordResult);
 
     /**
      * 查询出需要轮询重试的 Record Id List
@@ -68,25 +59,19 @@ public interface Manager {
 
     /**
      * 如果无数据，需要返回空的List，而不能是 null
-     * 
-     * @param recordId
-     * @return
      */
     List<SagaTxRecord> findTxRecordList(Long recordId);
 
-    SagaTxRecordResult getTxRecordResult(Long txRecordId);
+    SagaTxRecordResult findTxRecordResult(Long txRecordId);
 
     void saveTxRecordStatus(Long txRecordId, SagaTxStatus status);
 
     /**
      * 将 TxRecord 标记为成功，并保存执行结果
-     * 
-     * @param recordResult
-     * @return
      */
     void saveTxRecordSuccAndResult(SagaTxRecordResult recordResult);
 
-    List<SagaTxRecordParam> getTxRecordParam(Long txRecordId);
+    List<SagaTxRecordParam> findTxRecordParam(Long txRecordId);
 
     List<SagaRecordParam> findRecordParam(long recordId);
 }

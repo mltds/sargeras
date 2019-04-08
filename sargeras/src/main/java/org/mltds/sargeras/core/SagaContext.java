@@ -179,19 +179,32 @@ public class SagaContext {
     }
 
     public SagaTxRecordResult getTxRecordResult(Long txRecordId) {
-        return manager.getTxRecordResult(txRecordId);
+        return manager.findTxRecordResult(txRecordId);
     }
 
     public void saveTxStatus(Long txRecordId, SagaTxStatus status) {
+
         manager.saveTxRecordStatus(txRecordId, status);
+
+        for (SagaTxRecord record : txRecordList) {
+            if (record.getId().equals(txRecordId)) {
+                record.setStatus(status);
+            }
+        }
     }
 
     public void saveTxRecordSuccAndResult(SagaTxRecordResult recordResult) {
         manager.saveTxRecordSuccAndResult(recordResult);
+
+        for (SagaTxRecord record : txRecordList) {
+            if (record.getId().equals(recordResult.getTxRecordId())) {
+                record.setStatus(SagaTxStatus.SUCCESS);
+            }
+        }
     }
 
     public List<SagaTxRecordParam> getTxRecordParam(Long txRecordId) {
-        return manager.getTxRecordParam(txRecordId);
+        return manager.findTxRecordParam(txRecordId);
     }
 
     /* getter start */

@@ -5,21 +5,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.mltds.sargeras.api.Saga;
 import org.mltds.sargeras.api.exception.SagaException;
-import org.mltds.sargeras.api.exception.SagaNotFoundException;
-import org.mltds.sargeras.spi.manager.Manager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.mltds.sargeras.spi.pollretry.PollRetry;
+import org.springframework.stereotype.Component;
 
 /**
  * @author sunyi
  */
+@Component
 public class SagaApplication {
-
-    private static final Logger logger = LoggerFactory.getLogger(SagaApplication.class);
 
     private final Map<String, Saga> sagas = new ConcurrentHashMap<>();
 
-    private Manager manager;
+    private PollRetry pollRetry;
 
     public void addSaga(Saga saga) {
         synchronized (SagaApplication.class) {
@@ -40,8 +37,8 @@ public class SagaApplication {
         return getSaga(Saga.getKeyName(appName, bizName));
     }
 
-    public Manager getManager() {
-        return manager;
+    public void after() {
+
     }
 
 }

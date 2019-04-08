@@ -13,10 +13,11 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.mltds.sargeras.core.SagaContext;
 import org.mltds.sargeras.api.SagaTxStatus;
-import org.mltds.sargeras.api.exception.expectation.Failure;
+import org.mltds.sargeras.api.SagaTxFailure;
+import org.mltds.sargeras.api.SagaTxProcessing;
 import org.mltds.sargeras.api.model.*;
+import org.mltds.sargeras.core.SagaContext;
 import org.mltds.sargeras.spi.serializer.Serializer;
 import org.mltds.sargeras.utils.NULL;
 import org.mltds.sargeras.utils.Utils;
@@ -139,8 +140,10 @@ public class SagaTxAspect {
             saveTxRecordResult(txRecord.getRecordId(), txRecord.getId(), result);
             return result;
         } catch (Throwable throwable) {
-            if (throwable instanceof Failure) {
+            if (throwable instanceof SagaTxFailure) {
                 context.saveTxStatus(txRecord.getId(), SagaTxStatus.FAILURE);
+            } else if (throwable instanceof SagaTxProcessing) {
+                context.saveTxStatus(txRecord.getId(), SagaTxStatus.PROCESSING);
             } else {
                 // 其他异常情况全部视为处理中
                 context.saveTxStatus(txRecord.getId(), SagaTxStatus.PROCESSING);

@@ -1,11 +1,13 @@
 package org.mltds.sargeras.api.annotation;
 
 import java.lang.annotation.*;
-import java.lang.reflect.Method;
 
 /**
+ * 声明这是一个 Saga Tx， 关于 Saga Tx 的定义请参考 README。<br/>
  *
- * 默认会持久化所有参数，如果某个参数不想被持久化，可以使用 {@link NonPersistent}，用于注入到补偿方法的入参中
+ * 默认会持久化 {@link #compensate()} 方法所需要的参数，判断所需要的参数规则为，参数类型+参数名称完全一致。<br/>
+ * 持久化入参的目的是执行补偿方法 {@link #compensate()} 时，提供所需要的信息。<br/>
+ * 如果某个参数不想被持久化，可以使用 {@link NonPersistent} 标注在入参上。<br/>
  *
  * @author sunyi.
  */
@@ -22,15 +24,5 @@ public @interface SagaTx {
      * @return 补偿方法名（Compensate Method Name）
      */
     String compensate() default "";
-
-    // /**
-    // * 是否需要持久化这个TX的参数
-    // *
-    // * @return true：持久化参数和结果，有一定的性能损耗
-    // */
-    // boolean paramPersistent() default true;
-    //
-    //
-    // boolean resultPersistent() default true;
 
 }

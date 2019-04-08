@@ -1,24 +1,28 @@
 package org.mltds.sargeras.core.aop;
 
+import java.lang.reflect.Method;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
 import org.mltds.sargeras.api.Saga;
-import org.mltds.sargeras.api.SagaBuilder;
 import org.mltds.sargeras.api.SagaStatus;
+import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.exception.SagaException;
-import org.mltds.sargeras.api.exception.expectation.Failure;
-import org.mltds.sargeras.api.model.MethodInfo;
-import org.mltds.sargeras.api.model.ParamInfo;
-import org.mltds.sargeras.api.model.SagaRecordResult;
+import org.mltds.sargeras.api.SagaTxFailure;
+import org.mltds.sargeras.api.SagaTxProcessing;
+import org.mltds.sargeras.api.model.*;
 import org.mltds.sargeras.core.SagaApplication;
 import org.mltds.sargeras.core.SagaContext;
 import org.mltds.sargeras.core.SagaContextFactory;
 import org.mltds.sargeras.spi.serializer.Serializer;
 import org.mltds.sargeras.utils.NULL;
+import org.mltds.sargeras.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -68,9 +72,12 @@ public class SagaAspect implements ApplicationContextAware {
         SagaContext context = sagaContextFactory.loadContext(appName, bizName, bizId);
 
         if (context == null) {// 首次执行
+
+            Saga saga = sagaApplication.getSaga(appName, bizName);
+
             MethodInfo methodInfo = aopComponent.getMethodInfo(joinPoint);
             List<ParamInfo> paramInfoList = aopComponent.getParamInfoList(methodInfo);
-            Saga saga = getSaga(joinPoint);
+
             context = sagaContextFactory.newContext(saga);
             context.firstTrigger(bizId, methodInfo, paramInfoList);
         } else {
@@ -97,7 +104,7 @@ public class SagaAspect implements ApplicationContextAware {
 
         } else if (status.equals(SagaStatus.COMPENSATING)) {
             // 补偿中，进行补偿
-            aopComponent.compensate();
+            compensate();
             // 因为补偿是分别调用的，并没有结果，所以返回null
             return null;
         } else if (status.equals(SagaStatus.COMPENSATE_SUCC) || status.equals(SagaStatus.COMPENSATE_FAIL) || status.equals(SagaStatus.OVERTIME)) {
@@ -132,8 +139,6 @@ public class SagaAspect implements ApplicationContextAware {
                 context.saveStatus(SagaStatus.COMPENSATE_SUCC);
             }
             context.triggerOver();
-        } catch (Exception e) {
-            logger.error("afterReturning", e); // TODO 优化异常信息
         } finally {
             aopHolder.removeContext();
         }
@@ -146,9 +151,9 @@ public class SagaAspect implements ApplicationContextAware {
             SagaContext context = aopHolder.getContext();
             SagaStatus status = context.getStatus();
 
-            if (throwable instanceof Failure) {
+            if (throwable instanceof SagaTxFailure) {
                 if (status.equals(SagaStatus.EXECUTING)) {
-                    aopComponent.compensate();
+                    compensate();
                 } else if (status.equals(SagaStatus.COMPENSATING)) {
                     context.saveStatus(SagaStatus.COMPENSATE_FAIL);
                 }
@@ -160,8 +165,6 @@ public class SagaAspect implements ApplicationContextAware {
                 }
             }
             context.triggerOver();
-        } catch (Exception e) {
-            logger.error("afterThrowing", e); // TODO 优化异常信息
         } finally {
             aopHolder.removeContext();
             throw throwable;
@@ -169,58 +172,117 @@ public class SagaAspect implements ApplicationContextAware {
 
     }
 
-    private Saga getSaga(JoinPoint joinPoint) {
+    private void compensate() throws Throwable {
 
-        org.mltds.sargeras.api.annotation.Saga anno = aopComponent.getSaga(joinPoint);
+        SagaContext context = aopHolder.getContext();
 
-        String appName = anno.appName();
-        String bizName = anno.bizName();
-
-        Saga saga = sagaApplication.getSaga(appName, bizName);
-        if (saga != null) {
-            return saga;
+        SagaStatus status = context.getStatus();
+        if (status.equals(SagaStatus.EXECUTING)) {
+            context.saveStatus(SagaStatus.COMPENSATING);
         }
 
-        MethodInfo methodInfo = aopComponent.getMethodInfo(joinPoint);
-        saga = buildSaga(joinPoint.getThis(), anno, methodInfo);
+        List<SagaTxRecord> txRecordList = context.getTxRecordList();
+        for (int i = txRecordList.size() - 1; i >= 0; i--) {
+            SagaTxRecord txRecord = txRecordList.get(i);
+            SagaTxStatus txStatus = txRecord.getStatus();
 
-        return saga;
+            if (txStatus.equals(SagaTxStatus.SUCCESS) || txStatus.equals(SagaTxStatus.FAILURE) || txStatus.equals(SagaTxStatus.COMPENSATE_PROCESSING)) {
+                try {
+
+                    doCompensate(txRecord);
+
+                } catch (Throwable e) {
+                    if (e instanceof SagaTxFailure) {
+                        context.saveStatus(SagaStatus.COMPENSATE_FAIL);
+                    } else if (e instanceof SagaTxProcessing) {
+                        // 补偿处理中，不需要做什么
+                    } else {
+                        // 其他异常均视为处理中，不能将系统异常当做业务失败。
+                        logger.warn("补偿过程中发生异常，Saga Tx Record ID: " + txRecord.getId(), e);
+                    }
+                    throw e;
+                }
+            } else if (txStatus.equals(SagaTxStatus.COMPENSATE_FAILURE)) {
+                context.saveStatus(SagaStatus.COMPENSATE_FAIL);
+            } else if (txStatus.equals(SagaTxStatus.COMPENSATE_SUCCESS)) {
+                // 补偿过了，不再补偿
+            } else {
+                throw new SagaException("补偿过程中发现不合理的状态,SagaTxRecordId: " + txRecord.getId() + ", SagaTxStatus: " + txStatus);
+            }
+        }
 
     }
 
-    private Saga buildSaga(Object bean, org.mltds.sargeras.api.annotation.Saga anno, MethodInfo methodInfo) {
+    private Object doCompensate(SagaTxRecord txRecord) throws Exception {
 
-        String appName = anno.appName();
-        String bizName = anno.bizName();
-        int bizTimeout = anno.bizTimeout();
-        int lockTimeout = anno.lockTimeout();
-        String triggerInterval = anno.triggerInterval();
-        // Class<? extends SagaListener>[] listeners = anno.listeners();
+        SagaContext context = aopHolder.getContext();
 
-        SagaBuilder builder = SagaBuilder.newBuilder();
-        builder.setAppName(appName)//
-                .setBizName(bizName)//
-                .setCls(methodInfo.getCls())//
-                .setBean(bean)//
-                .setMethod(methodInfo.getMethod())//
-                .setParamTypes(methodInfo.getParameterTypes())//
-                .setBizTimeout(bizTimeout)//
-                .setLockTimeout(lockTimeout)//
-                .setTriggerInterval(triggerInterval)//
-        ;
+        Long id = txRecord.getId();
+        SagaTxStatus txStatus = txRecord.getStatus();
 
-        // for (Class<? extends SagaListener> listener : listeners) {
-        // SagaListener l = applicationContext.getBean(listener);
-        // if (l == null) {
-        // throw new SagaException(methodInfo.getCls().getSimpleName() + "#" + methodInfo.getMethodName() + " 配置Listener: " + listener.getSimpleName()
-        // + " 失败, Listener 需要为 Spring Bean");
-        // }
-        // builder.addListener(l);
-        // }
+        if (!txStatus.equals(SagaTxStatus.SUCCESS) && !txStatus.equals(SagaTxStatus.FAILURE) && !txStatus.equals(SagaTxStatus.COMPENSATE_PROCESSING)) {
+            throw new SagaException("状态不正确无法补偿,SagaTxRecordId: " + id + ", SagaTxStatus: " + txStatus);
+        }
 
-        Saga saga = builder.build();
-        sagaApplication.addSaga(saga);
-        return saga;
+        Class<?> cls = Utils.loadClass(txRecord.getCls());
+        String compensateMethodName = txRecord.getCompensateMethod();
+        if (StringUtils.isBlank(compensateMethodName)) {
+            return null;
+        }
+
+        MethodInfo compensateMethodInfo = aopComponent.getCompensateMethodInfo(cls, compensateMethodName);
+
+        if (compensateMethodInfo == null) {
+            throw new SagaException("没有找到 Saga Tx " + txRecord.getCls() + "#" + txRecord.getMethod() + " 的 Compensate 方法： " + compensateMethodName);
+        }
+
+        Class<?>[] parameterTypes = compensateMethodInfo.getParameterTypes();
+        String[] parameterNames = compensateMethodInfo.getParameterNames();
+
+        List<SagaTxRecordParam> paramList = context.getTxRecordParam(txRecord.getId());
+        Map<String, SagaTxRecordParam> map = new HashMap<>(paramList.size());
+        for (SagaTxRecordParam param : paramList) {
+            map.put(param.getParameterName(), param);
+        }
+
+        Object args[] = new Object[parameterNames.length];
+        for (int i = 0; i < args.length; i++) {
+            String name = parameterNames[i];
+            Class<?> type = parameterTypes[i];
+
+            SagaTxRecordParam param = map.get(name);
+            String parameterName = param.getParameterName();
+            String parameterType = param.getParameterType();
+
+            if (name.equals(parameterName) && type.getName().equals(parameterType)) {
+                Object obj = serializer.decode(param.getParameter(), type);
+                args[i] = obj;
+            }
+        }
+
+        Object bean = applicationContext.getBean(cls);
+        Method compensateMethod = compensateMethodInfo.getMethod();
+
+        try {
+            // 执行补偿
+            Object result = compensateMethod.invoke(bean, args);
+            context.saveTxStatus(txRecord.getId(), SagaTxStatus.COMPENSATE_SUCCESS);
+            return result;
+
+        } catch (Throwable e) {
+            if (e instanceof SagaTxFailure) {
+                // 补偿失败
+                context.saveTxStatus(txRecord.getId(), SagaTxStatus.COMPENSATE_FAILURE);
+            } else if (e instanceof SagaTxProcessing) {
+                // 补偿中
+                context.saveTxStatus(txRecord.getId(), SagaTxStatus.COMPENSATE_PROCESSING);
+            } else {
+                // 其他异常都视为处理中
+                context.saveTxStatus(txRecord.getId(), SagaTxStatus.COMPENSATE_PROCESSING);
+                logger.warn("补偿过程中发生异常，Saga Tx Record ID: " + txRecord.getId(), e);
+            }
+            throw e;
+        }
     }
 
     @Override
