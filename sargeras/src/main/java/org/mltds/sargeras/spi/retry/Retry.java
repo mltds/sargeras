@@ -1,9 +1,9 @@
-package org.mltds.sargeras.spi.pollretry;
+package org.mltds.sargeras.spi.retry;
 
 /**
  * @author sunyi.
  */
-public interface PollRetry {
+public interface Retry {
 
     /**
      * 启动轮询重试，组件自己执行，外部不调用

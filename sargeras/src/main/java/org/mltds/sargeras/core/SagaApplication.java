@@ -5,7 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.mltds.sargeras.api.Saga;
 import org.mltds.sargeras.api.exception.SagaException;
-import org.mltds.sargeras.spi.pollretry.PollRetry;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,8 +14,6 @@ import org.springframework.stereotype.Component;
 public class SagaApplication {
 
     private final Map<String, Saga> sagas = new ConcurrentHashMap<>();
-
-    private PollRetry pollRetry;
 
     public void addSaga(Saga saga) {
         synchronized (SagaApplication.class) {
@@ -35,10 +32,6 @@ public class SagaApplication {
 
     public Saga getSaga(String appName, String bizName) {
         return getSaga(Saga.getKeyName(appName, bizName));
-    }
-
-    public void after() {
-
     }
 
 }

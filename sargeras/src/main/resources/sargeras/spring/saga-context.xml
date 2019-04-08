@@ -14,6 +14,6 @@
 
     <import resource="saga-serializer-hessian.xml"/>
     <import resource="saga-manager-rdbms.xml"/>
-    <import resource="saga-pollretry-scheduled.xml"/>
+    <import resource="saga-retry-scheduled.xml"/>
 
 </beans>

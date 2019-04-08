@@ -11,14 +11,13 @@
 ## 快速启动
 
 ###### 方案的选择
-目前 Sargeras 有两个版本 0.x.x（master）及 1.x.x（server-model） 
- * 0.x.x（master）  
+目前 Sargeras 有两个版本 1.x.x（master）及 0.x.x
+ * 1.x.x（master）  
+ 基于 Spring 实现，可以单机集成到业务应用中，也可以配置为Server-Model，依赖跟自己公司相关的RPC组件。
+ * 0.x.x
  这个版本是以jar包形式嵌入到业务应用系统中并直连关系型数据库（RDBMS, 例如MySQL）做管理，简单实用，方便学习研究或小公司/团队使用。
- * 1.x.x（server-model）
- 这个版本是集中式管理，业务系统需要连接一个远程的Saga管理中心。目前还在编写中，更详细介绍可以切换到 server-model 分支查看。
 
-
-###### 0.x.x（master）快速启动
+###### 1.x.x（master）快速启动
  1. 添加 Maven 依赖到系统中
     ```xml
     <dependency>
@@ -29,48 +28,61 @@
     ```
  
  1. 需要一个关系型数据库，支持 JDBC 的，例如 MySQL ，执行 init.sql 脚本。
- 1. 配置文件一枚，命名为：sargeras.properties ，放在 classpath 目录下。（参见 Example 模块的 sargeras.properties）
-    > manager.rdbms.datasource.url=jdbc:mysql://mydb.com:3306/sargeras  
-      manager.rdbms.datasource.username=sunyi  
-      manager.rdbms.datasource.password=sunyi
- 1. 使用 SagaBuilder 配置一个 Saga 流程，使用 SagaLauncher 启动 Saga 框架。（参见 Example 模块的 Example1）
+ 1. 配置 Spring 相关信息， 例如以 XML 文件方式。（参见 Example 模块的 example1.xml）
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+     <beans xmlns="http://www.springframework.org/schema/beans"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:context="http://www.springframework.org/schema/context"
+            xsi:schemaLocation="
+            http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           ">
+     
+         <context:component-scan base-package="org.mltds.sargeras.example.example1"/>
+     
+         <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+             <property name="location">
+                 <value>classpath:sargeras.properties</value>
+             </property>
+             <property name="fileEncoding">
+                 <value>UTF-8</value>
+             </property>
+         </bean>
+     
+         <bean id="sagaDataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+             <property name="url" value="${manager.rdbms.datasource.url}"/>
+             <property name="username" value="${manager.rdbms.datasource.username}"/>
+             <property name="password" value="${manager.rdbms.datasource.password}"/>
+         </bean>
+     
+     
+         <import resource="classpath*:sargeras/spring/saga-context.xml"/>
+     
+     </beans>
+     ```
+ 1. 启动应用，并执行一个 Saga 流程。（参见 Example 模块的 Example1）
      ```java
-    SagaBuilder.newBuilder(appName, bizName)// 定义一个业务
-            .addTx(new BookCar())// 订汽车
-            .addTx(new BookAir())// 订机票
-            .addTx(new BookHotel(true))// 订酒店，false为强制失败
-            .addTx(new Summary()) // 汇总结果
-            .addListener(new LogListener()) // 增加一些log输出方便跟踪
-            .build();
+    public void service() {
+        try {
+            // 业务订单ID，唯一且必须先生成。
+            String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
 
-    SagaLauncher.launch(); // 需要先 Build Saga
+            // 家人信息
+            FamilyMember member = new FamilyMember();
+            member.id = "123456789012345678";
+            member.name = "小乌龟";
+            member.tel = "13100000000";
+            member.travelDestination = "Croatia Plitvice Lakes National Park";
+
+            BookResult bookResult = travelService.travel(bizId, member);// 一个 Saga 流程
+
+            logger.info(JSON.toJSONString(bookResult, true));
+        } catch (Exception e) {
+            logger.error("旅行计划发生异常", e);
+        }
+    }
     ```
- 1. 使用 Saga.start() 启动  一个Saga流程，传入对应的 BizId 和 BizParam。（参见 Example 模块的 Example1）
- 
-    ```java
-    // 业务订单ID，唯一且必须先生成。
-    String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-
-    // 家人信息
-    FamilyMember member = new FamilyMember();
-    member.id = "123456789012345678";
-    member.name = "小乌龟";
-    member.tel = "13100000000";
-    member.travelDestination = "Croatia Plitvice Lakes National Park";
-
-    // 获取业务流程（模板）
-    Saga saga = SagaApplication.getSaga(appName, bizName); // 任何地方都可以获取到这个Saga
-
-    // 执行业务
-    SagaResult sagaResult = saga.start(bizId, member);
-    Result bookResult = sagaResult.getBizResult(Result.class);
-
-    logger.info(JSON.toJSONString(bookResult, true));
-
-    ```
- 
-###### 1.x.x（master）快速启动 
- 
 
 ## 详细介绍
 
@@ -92,26 +104,31 @@
 假设我预定汽车成功，之后预定飞机也成功了，但预定酒店失败了，那么我需要取消之前预定的汽车和飞机。而在这个过程中，假设这些操作都涉及到远程通讯，都有可能因为网络抖动、服务重启等情况所影响，所以需要一个"东西"能够帮助你确保在碰到各种意外情况后，还能够将所有 TX 执行完或补偿需要补偿的TX。（PS：这里的补偿Compensate是回滚/回退的意思，而非重试）。  
 Saga 就是这样的一个框架，用来帮助你解决一个长链路流程的分布式事物问题，在业务系统应用层面。
 
-#### 核心组件
+#### 概念\组件介绍
 
 * Saga  
 代表一种LLT、一种业务流程，每执行一次代表一笔业务。
 
-* SagaContext  
-代表一笔业务，在 TX 执行或补偿过程中，可以从SagaContext存储/获取这笔业务相关信息。
-
-* TX  
-是 Saga 中的一个业务节点，多个 TX 组成一个Saga，当然，TX 是可以复用的。每个 TX 都有两个方法，执行（execute）和补偿（Compensate），方法的返回类型是 SagaTxStatus。
+* SagaTx  
+是 Saga 中的一个业务节点，多个 TX 组成一个Saga，当然，TX 是可以复用的。
 
 * SagaTxStatus  
-是控制流程的关键因素，Sargeras框架会根据返回的 SagaTxStatus 决定流程的去向，具体有以下几种状态
-    * SUCCESS：成功，执行或补偿下一个 TX
+是业务节点的状态，根据 SagaTx 运行情况来设置，具体有以下几种状态
+    * SUCCESS：成功，执行下一个 TX
     * PROCESSING：处理中，流程挂起，计算下一次期望重试的时间点，等待轮询重试或手动触发。
-    * FAILURE：失败，如果是执行（Execute）失败，则转为补偿（Compensate）流程；如果是补偿失败，则流程终止。
+    * FAILURE：执行失败，如果一个TX状态为失败，那么从这个TX开始逆向补偿
+    * COMPENSATE_SUCCESS：补偿成功
+    * COMPENSATE_PROCESSING：处理中，流程挂起，计算下一次期望重试的时间点，等待轮询重试或手动触发。
+    * COMPENSATE_FAILURE：补偿失败，流程终止。
+    
+* SagaTxProcessControl
+是 Saga 流程控制的依据，理论上 SagaTx 只有三种情况
+    * 成功，则继续执行
+    * 处理中，抛出 SagaTxProcessingException （或其他实现了 SagaTxProcessing 的 Exception)，等待后面重试。
+    * 失败，抛出 SagaTxFailureException（或其他实现了 SagaTxFailure 的 Exception），转为补偿流程或终止。
     
 * SagaStatus  
 是这个笔业整体状态的体现，具体有以下几种状态
-    * INIT：处理中，初始化状态
     * EXECUTING：处理中，正向执行中
     * COMPENSATING：处理中，逆向补偿中
     * EXECUTE_SUCC：所有 TX 都执行成功，Saga 最终执行成功
@@ -120,27 +137,17 @@ Saga 就是这样的一个框架，用来帮助你解决一个长链路流程的
     * OVERTIME：流程一直处理中直到超过了既定的 biz_timeout，最终结果未知，不再继续轮询重试。
     * INCOMPATIBLE：不兼容，暂时没有使用
 
-* SagaBuilder  
-用于构建一个 Saga，构建Saga之后就可以不用管它了
-
 * SagaApplication  
-Sargeras 的应用上下文，用于获取 Saga、SPI Bean 等
+Sargeras 的应用上下文，用于获取 Saga 等
 
-* SagaLauncher  
-Sargeras 的启动器，正常流程是先 Build 需要的 Saga，然后使用启动器启动 Sargeras
-
-
-* SagaBean/SagaBeanFactory  
+* Saga SPI
 是 Sargeras 的 SPI ，共有几种类型，并提供了默认实现
-    * Service 用于启动/重新启动等一个 Saga
-    * PollRetry 用于轮询重试处理中的业务
-    * Manager 用于管理执行过程中相关的操作
+    * Manager 用于管理执行过程中相关的操作，比如保存一条执行记录，修改状态等等。
+    * Retry 用于轮询重试处理中的业务。
+    * Serializer 用于参数/结果的序列化。
     
-
-* SagaListener  
-用于监听 Saga 的执行情况，在关键的节点会收到通知，里面有很多通知方法，具体可以到类里面查看，提供了2个默认实现
-    * EmptyListener 因为方法太多了，可以用这个来过滤掉不需要的方法
-    * LogListener 所有事件都会记录到 LOG 中，简单实用
+    
+    
 
 
 ## 一些七七八八的
@@ -174,48 +181,16 @@ Sargeras 的启动器，正常流程是先 Build 需要的 Saga，然后使用�
 
 * Saga的参数要持久化吗？  
     还是要持久化的，否则重试的时候没办法开始。
-
-
-#### 没想清楚的地方
- * Listener 是否应该有多个？  
-    如果只允许有一个Listener，那么 onError 方法应当返回状态，现在默认为处理中
- * 当某个 TX execute 返回 FAILURE 时，这个 TX 是否需要补偿？  
-    现在是补偿的，选择补偿的原因是考虑到，虽然执行失败了，但可能还是有需要消除一些影响。
- * 如果因为发布，导致代码里的TX变化了，可能无法向下兼容，怎么办？  
-    现在的考虑是向下兼容要业务系统考虑，如果某个流程在重试的时候，发现完全不能进行下去，比如找不到重试起始点的TX则尽量报错。
     
-
-    
- 
+ * Saga 补偿的方案有2个，应该用哪个？
+    1. 是逆向有序补偿，且某个Tx补偿失败了，后续不再执行。
+    2. 是不承诺补偿顺序，所有执行过的 SagaTx，都会执行补偿方法，直到得到成功或失败的结果。（Saga 超时除外）
+    目前选择的是 1 ，但没想清楚。方案 1 是 Saga 理念中的想法，Saga 理念中逆向补偿是可以转为正向执行的，但我们并不是，或许方案 2 更合适。
  
 #### 怀味道
  * log 直接使用了 slf4j
  * 锁的实现依赖 Repository，感觉不是很合理
  * 因某些代码比较繁琐，有的地方使用一点点 DDD 的思想，整体编码风格不是很一致
- * 现在必须先 Build Saga ，才能启动Application，感觉顺序有些奇怪
- * 都是硬编码的风格，或许可以支持注解式编程
-
-
-## 版本记录
-
-###### 0.3.0-SNAPSHOT
-* 重新定义了SPI各个组件的职责
-
-###### 0.2.0-SNAPSHOT
-* 修改工程结构，将 parent 作为顶层，管理属性、依赖等
-* 将 sargeras 模块作为核心，另外创建了 Example 和 Spring 两个模块
-
-###### 0.1.1-SNAPSHOT
-* 支持轮询重试
-* 支持轮询重试间隔配置
-* 支持轮询重试工作线程数配置
-
-###### 0.1.0-SNAPSHOT
-* 支持一个Saga正向执行、逆向回滚
-* 完成基本的配置、存储、序列化、管理、异常等组件
-* 定义基本的 API，支持配置文件指定组件的实现 
-
-
 
 
 

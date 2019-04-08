@@ -1,4 +1,4 @@
-package org.mltds.sargeras.spi.pollretry.scheduled;
+package org.mltds.sargeras.spi.retry.scheduled;
 
 import java.lang.reflect.Method;
 import java.util.Date;
@@ -17,7 +17,7 @@ import org.mltds.sargeras.api.model.SagaRecord;
 import org.mltds.sargeras.api.model.SagaRecordParam;
 import org.mltds.sargeras.core.SagaApplication;
 import org.mltds.sargeras.spi.manager.Manager;
-import org.mltds.sargeras.spi.pollretry.PollRetry;
+import org.mltds.sargeras.spi.retry.Retry;
 import org.mltds.sargeras.spi.serializer.Serializer;
 import org.mltds.sargeras.utils.Utils;
 import org.slf4j.Logger;
@@ -34,9 +34,9 @@ import org.springframework.stereotype.Component;
  * @author sunyi.
  */
 @Component
-public class ScheduledPollRetry implements PollRetry, ApplicationContextAware {
+public class ScheduledRetry implements Retry, ApplicationContextAware {
 
-    private static final Logger logger = LoggerFactory.getLogger(ScheduledPollRetry.class);
+    private static final Logger logger = LoggerFactory.getLogger(ScheduledRetry.class);
     /**
      * 重试线程数
      */
@@ -78,7 +78,7 @@ public class ScheduledPollRetry implements PollRetry, ApplicationContextAware {
         executorService = new ScheduledThreadPoolExecutor(nThreads);
 
         for (int i = 0; i < nThreads; i++) {
-            executorService.scheduleAtFixedRate(new PollRetryThread(), 0, interval, TimeUnit.SECONDS);
+            executorService.scheduleAtFixedRate(new RetryThread(), 0, interval, TimeUnit.SECONDS);
         }
 
     }
@@ -99,7 +99,7 @@ public class ScheduledPollRetry implements PollRetry, ApplicationContextAware {
         this.applicationContext = applicationContext;
     }
 
-    private class PollRetryThread implements Runnable {
+    private class RetryThread implements Runnable {
         @Override
         public void run() {
 
