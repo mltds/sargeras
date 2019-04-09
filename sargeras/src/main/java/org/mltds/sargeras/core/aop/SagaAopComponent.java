@@ -15,12 +15,7 @@ import org.mltds.sargeras.api.model.MethodInfo;
 import org.mltds.sargeras.api.model.ParamInfo;
 import org.mltds.sargeras.spi.serializer.Serializer;
 import org.mltds.sargeras.utils.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -29,24 +24,12 @@ import org.springframework.util.Assert;
  * @author sunyi.
  */
 @Component
-public class SagaAopComponent implements ApplicationContextAware {
+public class SagaAopComponent {
 
-    private static final Logger logger = LoggerFactory.getLogger(SagaAopComponent.class);
-
-    private ApplicationContext applicationContext;
-
-    private DefaultParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
+    private final DefaultParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
     @Autowired
     private Serializer serializer;
-
-    @Autowired
-    private SagaAopHolder aopHolder;
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
 
     public org.mltds.sargeras.api.annotation.Saga getSaga(JoinPoint joinPoint) {
         MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
@@ -153,9 +136,7 @@ public class SagaAopComponent implements ApplicationContextAware {
 
     /**
      *
-     * @param methodInfo
      * @param parameterNames 只获取这些参数名的参数信息
-     * @return
      */
     public List<ParamInfo> getParamInfoList(MethodInfo methodInfo, Collection<String> parameterNames) {
 
@@ -177,6 +158,7 @@ public class SagaAopComponent implements ApplicationContextAware {
                 for (Annotation anno : parameterAnnotation) {
                     if (anno.annotationType().equals(NonPersistent.class)) {
                         nonPersistent = true;
+                        break;
                     }
                 }
             }
