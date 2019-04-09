@@ -7,6 +7,7 @@ import java.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.mltds.sargeras.api.annotation.NonPersistent;
 import org.mltds.sargeras.api.annotation.SagaBizId;
 import org.mltds.sargeras.api.annotation.SagaTx;
 import org.mltds.sargeras.api.exception.SagaException;
@@ -96,9 +97,7 @@ public class SagaAopComponent implements ApplicationContextAware {
         methodInfo.setParameterNames(parameterNames);
         methodInfo.setParameterNamesStr(Utils.arrayToString(parameterNames));
 
-
         return methodInfo;
-
 
     }
 
@@ -115,7 +114,6 @@ public class SagaAopComponent implements ApplicationContextAware {
 
         return getCompensateMethodInfo(cls, compensateMethodName);
     }
-
 
     public MethodInfo getCompensateMethodInfo(Class<?> cls, String compensateMethodName) {
 
@@ -164,19 +162,38 @@ public class SagaAopComponent implements ApplicationContextAware {
         List<ParamInfo> paramInfoList = new ArrayList<>(parameterNames.size());
         String[] parameterNamesArray = methodInfo.getParameterNames();
 
+        Annotation[][] parameterAnnotations = methodInfo.getMethod().getParameterAnnotations();
+
         for (int i = 0; i < parameterNamesArray.length; i++) {
             String parameterName = parameterNamesArray[i];
-            if (parameterNames.contains(parameterName)) {
-                ParamInfo paramInfo = new ParamInfo();
-                paramInfo.setParameterName(parameterName);
-                Class parameterType = methodInfo.getParameterTypes()[i];
-                paramInfo.setParameterType(parameterType);
-                paramInfo.setParameterTypeStr(parameterType.getName());
-                paramInfo.setParameter(methodInfo.getParameters()[i]);
-                paramInfo.setParameterByte(serializer.encode(paramInfo.getParameter()));
-
-                paramInfoList.add(paramInfo);
+            Annotation[] parameterAnnotation = parameterAnnotations[i];
+            if (!parameterNames.contains(parameterName)) {
+                continue;
             }
+
+            // 如果参数上面标注了 @NonPersistent ，则这个参数不会被持久化
+            boolean nonPersistent = false;
+            if (parameterAnnotation != null && parameterAnnotation.length > 0) {
+                for (Annotation anno : parameterAnnotation) {
+                    if (anno.annotationType().equals(NonPersistent.class)) {
+                        nonPersistent = true;
+                    }
+                }
+            }
+
+            if (nonPersistent) {
+                continue;
+            }
+
+            ParamInfo paramInfo = new ParamInfo();
+            paramInfo.setParameterName(parameterName);
+            Class parameterType = methodInfo.getParameterTypes()[i];
+            paramInfo.setParameterType(parameterType);
+            paramInfo.setParameterTypeStr(parameterType.getName());
+            paramInfo.setParameter(methodInfo.getParameters()[i]);
+            paramInfo.setParameterByte(serializer.encode(paramInfo.getParameter()));
+
+            paramInfoList.add(paramInfo);
         }
 
         return paramInfoList;
@@ -210,8 +227,6 @@ public class SagaAopComponent implements ApplicationContextAware {
         return joinPoint.getArgs()[bizIdIndex].toString();
 
     }
-
-
 
     public Method getCompensateMethod(Class<?> clazz, String compensateMethodName) {
         Assert.notNull(clazz, "Class must not be null");

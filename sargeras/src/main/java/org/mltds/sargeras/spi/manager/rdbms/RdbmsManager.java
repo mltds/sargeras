@@ -68,16 +68,24 @@ public class RdbmsManager implements Manager {
 
         if (sagaRecord == null) {
             return false;
-        } else if (!sagaRecord.isLocked() || triggerId.equals(sagaRecord.getTriggerId())) {
+        } else if (!sagaRecord.isLocked()) {
+            // 没有被锁，尝试获取锁
             int update = sagaRecordMapper.updateForLock(recordId, null, triggerId, lockExpireTime);
             locked = update > 0;
+        } else if (sagaRecord.isLocked() && triggerId.equals(sagaRecord.getTriggerId())) {
+            // 已经被锁，但是是被自己这个TriggerId锁住的，那么去尝试获取锁，并刷新锁的过期时间。
+            int update = sagaRecordMapper.updateForLock(recordId, triggerId, triggerId, lockExpireTime);
+            locked = update > 0;
         } else {
+            // 已经被锁，且被其他 Trigger ID 锁住的
             Calendar c = Calendar.getInstance();
-            boolean after = c.getTime().after(sagaRecord.getExpireTime());
+            boolean after = c.getTime().after(sagaRecord.getLockExpireTime());
             if (after) {
+                // 当前时间晚于锁的过期时间，尝试获取锁
                 int lock = sagaRecordMapper.updateForLock(recordId, sagaRecord.getTriggerId(), triggerId, lockExpireTime);
                 locked = lock > 0;
             } else {
+                // 当前时间早于锁的过期时间，放弃获取锁，返回失败
                 return false;
             }
         }
@@ -115,7 +123,6 @@ public class RdbmsManager implements Manager {
     public void saveRecordStatus(long recordId, SagaStatus status) {
         sagaRecordMapper.updateStatus(recordId, status, new Date());
     }
-
 
     @Override
     @Transactional(rollbackFor = Throwable.class)

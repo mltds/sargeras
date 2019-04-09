@@ -28,7 +28,7 @@ public class Example1 {
 
     @Test
     public void test() throws IOException, InterruptedException {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1; i++) {
             service();
         }
 
@@ -37,9 +37,11 @@ public class Example1 {
     }
 
     public void service() {
+
+        // 业务订单ID，唯一且必须先生成。
+        String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+
         try {
-            // 业务订单ID，唯一且必须先生成。
-            String bizId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
 
             // 家人信息
             FamilyMember member = new FamilyMember();
@@ -52,7 +54,7 @@ public class Example1 {
 
             logger.info(JSON.toJSONString(bookResult, true));
         } catch (Exception e) {
-            logger.error("旅行计划发生异常", e);
+            logger.error("旅行计划发生异常: bizId: " + bizId, e);
         }
     }
 

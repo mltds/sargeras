@@ -46,4 +46,12 @@ public class ParamInfo {
     public void setParameterByte(byte[] parameterByte) {
         this.parameterByte = parameterByte;
     }
+
+    @Override
+    public String toString() {
+        return "ParamInfo{" +
+                "parameterTypeStr='" + parameterTypeStr + '\'' +
+                ", parameterName='" + parameterName + '\'' +
+                '}';
+    }
 }

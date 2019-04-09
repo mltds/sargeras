@@ -19,7 +19,7 @@ public class HotelService {
 
         int bookStatus = RandomUtils.nextInt(0, 3);
 
-        // int bookStatus = 1;
+        // int bookStatus = 2;
 
         if (bookStatus == 0) {
             // 预约酒店成功，对方返回一个酒店预约单号

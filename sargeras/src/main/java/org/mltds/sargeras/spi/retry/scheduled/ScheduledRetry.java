@@ -114,8 +114,8 @@ public class ScheduledRetry implements Retry, ApplicationContextAware {
                         }
 
                         SagaRecord record = manager.findRecord(recordId);
-                        if (record.isLocked()) {
-                            break;
+                        if (record.isLocked() && record.getLockExpireTime().after(new Date())) {
+                            continue;
                         }
 
                         List<SagaRecordParam> recordParamList = manager.findRecordParam(recordId);

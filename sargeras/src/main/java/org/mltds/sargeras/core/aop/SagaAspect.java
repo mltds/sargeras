@@ -10,12 +10,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
-import org.mltds.sargeras.api.Saga;
-import org.mltds.sargeras.api.SagaStatus;
-import org.mltds.sargeras.api.SagaTxStatus;
+import org.mltds.sargeras.api.*;
 import org.mltds.sargeras.api.exception.SagaException;
-import org.mltds.sargeras.api.SagaTxFailure;
-import org.mltds.sargeras.api.SagaTxProcessing;
 import org.mltds.sargeras.api.model.*;
 import org.mltds.sargeras.core.SagaApplication;
 import org.mltds.sargeras.core.SagaContext;
@@ -86,7 +82,6 @@ public class SagaAspect implements ApplicationContextAware {
         }
 
         aopHolder.setContext(context);
-
     }
 
     @Around("sagaAspect()")
@@ -251,6 +246,11 @@ public class SagaAspect implements ApplicationContextAware {
             Class<?> type = parameterTypes[i];
 
             SagaTxRecordParam param = map.get(name);
+
+            if (param == null) {
+                continue;
+            }
+
             String parameterName = param.getParameterName();
             String parameterType = param.getParameterType();
 
