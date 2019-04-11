@@ -49,9 +49,6 @@ public class ParamInfo {
 
     @Override
     public String toString() {
-        return "ParamInfo{" +
-                "parameterTypeStr='" + parameterTypeStr + '\'' +
-                ", parameterName='" + parameterName + '\'' +
-                '}';
+        return "ParamInfo{" + "parameterName='" + parameterName + '\'' + '}';
     }
 }

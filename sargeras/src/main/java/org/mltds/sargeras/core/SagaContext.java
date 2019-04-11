@@ -7,6 +7,7 @@ import org.mltds.sargeras.api.SagaStatus;
 import org.mltds.sargeras.api.SagaTxStatus;
 import org.mltds.sargeras.api.exception.SagaException;
 import org.mltds.sargeras.api.exception.SagaLockFailException;
+import org.mltds.sargeras.api.listener.*;
 import org.mltds.sargeras.api.model.*;
 import org.mltds.sargeras.spi.manager.Manager;
 
@@ -24,6 +25,8 @@ public class SagaContext {
     List<SagaTxRecord> txRecordList;
 
     Manager manager;
+    SagaListenerChain sagaListenerChain;
+    SagaTxListenerChain sagaTxListenerChain;
 
     SagaContext() {
 
@@ -75,6 +78,8 @@ public class SagaContext {
 
         this.record.setId(id);
 
+        notifySagaListener(SagaStatus.EXECUTING, record);
+
     }
 
     /**
@@ -104,6 +109,8 @@ public class SagaContext {
         } else {
             throw new SagaLockFailException(record.getId(), record.getTriggerId());
         }
+
+        notifySagaListener(SagaStatus.EXECUTING, record);
     }
 
     public void triggerOver() {
@@ -117,11 +124,16 @@ public class SagaContext {
     public void saveStatus(SagaStatus status) {
         manager.saveRecordStatus(record.getId(), status);
         record.setStatus(status);
+
+        notifySagaListener(status, record);
+
     }
 
     public void saveStatusAndResult(SagaStatus status, SagaRecordResult recordResult) {
         manager.saveRecordStatusAndResult(record.getId(), status, recordResult);
         record.setStatus(status);
+
+        notifySagaListener(status, record);
     }
 
     /**
@@ -189,8 +201,11 @@ public class SagaContext {
         for (SagaTxRecord record : txRecordList) {
             if (record.getId().equals(txRecordId)) {
                 record.setStatus(status);
+                notifySagaTxListener(status, record);
+                return;
             }
         }
+
     }
 
     public void saveTxRecordSuccAndResult(SagaTxRecordResult recordResult) {
@@ -199,12 +214,58 @@ public class SagaContext {
         for (SagaTxRecord record : txRecordList) {
             if (record.getId().equals(recordResult.getTxRecordId())) {
                 record.setStatus(SagaTxStatus.SUCCESS);
+                notifySagaTxListener(SagaTxStatus.SUCCESS, record);
+                return;
             }
         }
     }
 
     public List<SagaTxRecordParam> getTxRecordParam(Long txRecordId) {
         return manager.findTxRecordParam(txRecordId);
+    }
+
+    private void notifySagaListener(SagaStatus status, SagaRecord record) {
+        switch (status) {
+        case EXECUTING:
+            sagaListenerChain.event(new SagaEvent(SagaEventType.ON_TRIGGER, record));
+            break;
+        case EXECUTE_SUCC:
+            sagaListenerChain.event(new SagaEvent(SagaEventType.ON_EXECUTE_SUCCESS, record));
+            break;
+        case COMPENSATING:
+            sagaListenerChain.event(new SagaEvent(SagaEventType.ON_COMPENSATE_FAILURE, record));
+            break;
+        case COMPENSATE_SUCC:
+            sagaListenerChain.event(new SagaEvent(SagaEventType.ON_COMPENSATE_SUCCESS, record));
+            break;
+        case COMPENSATE_FAIL:
+            sagaListenerChain.event(new SagaEvent(SagaEventType.ON_COMPENSATE_FAILURE, record));
+            break;
+        }
+    }
+
+    private void notifySagaTxListener(SagaTxStatus status, SagaTxRecord record) {
+        switch (status) {
+        case SUCCESS:
+            sagaTxListenerChain.event(new SagaTxEvent(SagaTxEventType.ON_EXECUTE_SUCCESS, record));
+            break;
+        case PROCESSING:
+            sagaTxListenerChain.event(new SagaTxEvent(SagaTxEventType.ON_COMPENSATE_PROCESS, record));
+            break;
+        case FAILURE:
+            sagaTxListenerChain.event(new SagaTxEvent(SagaTxEventType.ON_COMPENSATE_FAILURE, record));
+            break;
+        case COMPENSATE_SUCCESS:
+            sagaTxListenerChain.event(new SagaTxEvent(SagaTxEventType.ON_COMPENSATE_SUCCESS, record));
+            break;
+        case COMPENSATE_PROCESSING:
+            sagaTxListenerChain.event(new SagaTxEvent(SagaTxEventType.ON_COMPENSATE_PROCESS, record));
+            break;
+        case COMPENSATE_FAILURE:
+            sagaTxListenerChain.event(new SagaTxEvent(SagaTxEventType.ON_COMPENSATE_FAILURE, record));
+            break;
+
+        }
     }
 
     /* getter start */

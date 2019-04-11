@@ -46,16 +46,8 @@ public class SagaScan extends InstantiationAwareBeanPostProcessorAdapter {
 
     private void registrySaga(String beanName, Method method, Saga anno) {
 
-        String appName = anno.appName();
-        String bizName = anno.bizName();
-
-        org.mltds.sargeras.api.Saga saga = sagaApplication.getSaga(appName, bizName);
-        if (saga != null) {
-            return;
-        }
-
         MethodInfo methodInfo = aopComponent.getMethodInfo(method);
-        saga = buildSaga(beanName, anno, methodInfo);
+        org.mltds.sargeras.api.Saga saga = buildSaga(beanName, anno, methodInfo);
         sagaApplication.addSaga(saga);
 
         logger.info("注册Saga：" + saga.getKeyName());

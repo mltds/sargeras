@@ -5,18 +5,29 @@ package org.mltds.sargeras.api.listener;
  */
 public enum SagaEventType {
 
-    ON_TRIGGER_FIRST,
+    /**
+     * 当 Saga 触发，包括首次和重试
+     */
+    ON_TRIGGER,
 
-    ON_TRIGGER_NOT_FIRST,
+    /**
+     * 当 Saga 执行成功
+     */
+    ON_EXECUTE_SUCCESS,
 
-    ON_EXECUTE_SUCC,
+    /**
+     * 当 Saga 补偿成功
+     */
+    ON_COMPENSATE_SUCCESS,
 
-    ON_EXECUTE_FAIL,
+    /**
+     * 当 Saga 补偿失败
+     */
+    ON_COMPENSATE_FAILURE,
 
-    ON_COMPENSATE_SUCC,
-
-    ON_COMPENSATE_FAIL,
-
+    /**
+     * 当 Saga 业务超时
+     */
     ON_OVERTIME
 
 }

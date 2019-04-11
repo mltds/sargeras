@@ -12,7 +12,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.mltds.sargeras.api.Saga;
-import org.mltds.sargeras.api.SagaTxProcessControl;
+import org.mltds.sargeras.api.SagaTxControl;
 import org.mltds.sargeras.api.model.SagaRecord;
 import org.mltds.sargeras.api.model.SagaRecordParam;
 import org.mltds.sargeras.core.SagaApplication;
@@ -146,7 +146,7 @@ public class ScheduledRetry implements Retry, ApplicationContextAware {
                         method.invoke(bean, args);
 
                     } catch (Exception e) {
-                        if (!(e instanceof SagaTxProcessControl)) {
+                        if (!(e instanceof SagaTxControl)) {
                             logger.warn("轮询重试期间发生异常, Record ID:" + recordId, e);
                         }
                     }

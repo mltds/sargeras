@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mltds.sargeras.example.example1.txs.TravelService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +52,11 @@ public class Example1 {
             BookResult bookResult = travelService.travel(bizId, member);
 
             logger.info(JSON.toJSONString(bookResult, true));
+
         } catch (Exception e) {
+
             logger.error("旅行计划发生异常: bizId: " + bizId, e);
+
         }
     }
 

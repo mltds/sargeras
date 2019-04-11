@@ -1,9 +1,13 @@
-package org.mltds.sargeras.example.example1.txs;
+package org.mltds.sargeras.example.example1;
 
 import org.mltds.sargeras.api.annotation.Saga;
 import org.mltds.sargeras.api.annotation.SagaBizId;
 import org.mltds.sargeras.example.example1.BookResult;
 import org.mltds.sargeras.example.example1.FamilyMember;
+import org.mltds.sargeras.example.example1.txs.AirService;
+import org.mltds.sargeras.example.example1.txs.CarService;
+import org.mltds.sargeras.example.example1.txs.HotelService;
+import org.mltds.sargeras.example.example1.txs.SummaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

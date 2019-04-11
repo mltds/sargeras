@@ -132,6 +132,7 @@ public class SagaAspect implements ApplicationContextAware {
 
             } else if (status.equals(SagaStatus.COMPENSATING)) {
                 context.saveStatus(SagaStatus.COMPENSATE_SUCC);
+
             }
             context.triggerOver();
         } finally {
@@ -148,11 +149,9 @@ public class SagaAspect implements ApplicationContextAware {
 
             if (throwable instanceof SagaTxFailure) {
                 if (status.equals(SagaStatus.EXECUTING)) {
-                    compensate();
-                } else if (status.equals(SagaStatus.COMPENSATING)) {
-                    context.saveStatus(SagaStatus.COMPENSATE_FAIL);
+                    context.saveStatus(SagaStatus.COMPENSATING);
                 }
-
+                compensate();
             } else {
                 Date nextTriggerTime = context.getNextTriggerTime();
                 if (nextTriggerTime.after(context.getExpireTime())) {
@@ -170,11 +169,6 @@ public class SagaAspect implements ApplicationContextAware {
     private void compensate() throws Throwable {
 
         SagaContext context = aopHolder.getContext();
-
-        SagaStatus status = context.getStatus();
-        if (status.equals(SagaStatus.EXECUTING)) {
-            context.saveStatus(SagaStatus.COMPENSATING);
-        }
 
         List<SagaTxRecord> txRecordList = context.getTxRecordList();
         for (int i = txRecordList.size() - 1; i >= 0; i--) {
@@ -199,6 +193,7 @@ public class SagaAspect implements ApplicationContextAware {
                 }
             } else if (txStatus.equals(SagaTxStatus.COMPENSATE_FAILURE)) {
                 context.saveStatus(SagaStatus.COMPENSATE_FAIL);
+                return;
             } else if (txStatus.equals(SagaTxStatus.COMPENSATE_SUCCESS)) {
                 // 补偿过了，不再补偿
             } else {

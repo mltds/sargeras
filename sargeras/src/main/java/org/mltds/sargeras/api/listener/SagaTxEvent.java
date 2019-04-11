@@ -2,19 +2,20 @@ package org.mltds.sargeras.api.listener;
 
 import org.apache.commons.beanutils.BeanUtils;
 import org.mltds.sargeras.api.exception.SagaException;
-import org.mltds.sargeras.api.model.SagaRecord;
+import org.mltds.sargeras.api.model.SagaTxRecord;
 
 /**
  * @author sunyi.
  */
-public class SagaEvent {
+public class SagaTxEvent {
 
-    private final SagaEventType eventType;
-    private final SagaRecord record;
+    private final SagaTxEventType eventType;
+    private final SagaTxRecord record;
 
-    public SagaEvent(SagaEventType eventType, SagaRecord record) {
+    public SagaTxEvent(SagaTxEventType eventType, SagaTxRecord record) {
         this.eventType = eventType;
-        this.record = new SagaRecord();
+
+        this.record = new SagaTxRecord();
         try {
             BeanUtils.copyProperties(this.record, record);
         } catch (Exception e) {
@@ -23,11 +24,12 @@ public class SagaEvent {
 
     }
 
-    public SagaEventType getEventType() {
+    public SagaTxEventType getEventType() {
         return eventType;
     }
 
-    public SagaRecord getRecord() {
+    public SagaTxRecord getRecord() {
         return record;
     }
+
 }

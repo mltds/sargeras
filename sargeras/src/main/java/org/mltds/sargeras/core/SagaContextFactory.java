@@ -41,26 +41,11 @@ public class SagaContextFactory {
         context.manager = manager;
         context.record = record;
         context.saga = sagaApplication.getSaga(appName, bizName);
+        context.sagaListenerChain = sagaApplication.getSagaListenerChain();
+        context.sagaTxListenerChain = sagaApplication.getSagaTxListenerChain();
 
         return context;
     }
 
-    public SagaContext loadContext(long recordId) {
 
-        SagaRecord record = manager.findRecord(recordId);
-        if (record == null) {
-            return null;
-        }
-
-        SagaContext context = new SagaContext();
-
-        String triggerId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        record.setTriggerId(triggerId);
-
-        context.manager = manager;
-        context.record = record;
-        context.saga = sagaApplication.getSaga(context.getAppName(), context.getBizName());
-
-        return context;
-    }
 }

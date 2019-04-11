@@ -5,5 +5,5 @@ package org.mltds.sargeras.api;
  * 
  * @author sunyi.
  */
-public interface SagaTxProcessing extends SagaTxProcessControl {
+public interface SagaTxProcessing extends SagaTxControl {
 }
