@@ -35,7 +35,7 @@ CREATE TABLE `saga_record_param` (
 CREATE TABLE `saga_record_result` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `record_id` bigint(20) NOT NULL,
-  `beanClass` varchar(100) NOT NULL DEFAULT '',
+  `cls` varchar(100) NOT NULL DEFAULT '',
   `result` longblob,
   `create_time` datetime NOT NULL,
   `modify_time` datetime NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE `saga_record_result` (
 CREATE TABLE `saga_tx_record` (
   `id` bigint(11) unsigned NOT NULL AUTO_INCREMENT,
   `record_id` bigint(20) NOT NULL,
-  `beanClass` varchar(100) NOT NULL DEFAULT '',
+  `cls` varchar(100) NOT NULL DEFAULT '',
   `method` varchar(100) NOT NULL DEFAULT '',
   `compensate_method` varchar(100) DEFAULT NULL,
   `parameter_types` varchar(2000) NOT NULL DEFAULT '',
@@ -78,7 +78,7 @@ CREATE TABLE `saga_tx_record_result` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `record_id` bigint(20) NOT NULL,
   `tx_record_id` bigint(20) NOT NULL,
-  `beanClass` varchar(100) NOT NULL DEFAULT '',
+  `cls` varchar(100) NOT NULL DEFAULT '',
   `result` longblob,
   `create_time` datetime NOT NULL,
   `modify_time` datetime NOT NULL,

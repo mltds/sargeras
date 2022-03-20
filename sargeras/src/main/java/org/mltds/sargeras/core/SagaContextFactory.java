@@ -24,6 +24,8 @@ public class SagaContextFactory {
         SagaContext context = new SagaContext();
         context.saga = saga;
         context.manager = manager;
+        context.sagaListenerChain = sagaApplication.getSagaListenerChain();
+        context.sagaTxListenerChain = sagaApplication.getSagaTxListenerChain();
         return context;
     }
 
