@@ -1,5 +1,6 @@
 package org.mltds.sargeras.spi.retry.scheduled;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.HashMap;
@@ -147,7 +148,8 @@ public class ScheduledRetry implements Retry, ApplicationContextAware {
 
                     } catch (Exception e) {
                         if (!(e instanceof SagaTxControl)) {
-                            logger.warn("轮询重试期间发生异常, Record ID:" + recordId, e);
+                            logger.warn("轮询重试期间发生异常, Record ID:" + recordId,
+                                    (e instanceof InvocationTargetException) ? ((InvocationTargetException) e).getTargetException() : e);
                         }
                     }
                 }
